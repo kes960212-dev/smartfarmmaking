@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌱 나의 스마트팜 꾸미기</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;background:#080e09;height:100vh;display:flex;flex-direction:column;overflow:hidden;color:#e8f5e9;}
+
+/* TOP */
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:50px;flex-shrink:0;z-index:30;gap:10px;background:linear-gradient(90deg,#0a1f0c,#153318,#0a1f0c);border-bottom:1px solid #1e4d22;}
+.top-left h1{font-size:14px;font-weight:700;color:#c8e6c9;}
+.top-left p{font-size:9px;color:#4caf50;margin-top:1px;}
+.cost-box{flex:1;max-width:260px;display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:5px 14px;}
+.cost-label{font-size:10px;color:#81c784;white-space:nowrap;}
+.cost-val{font-size:18px;font-weight:700;color:#69f0ae;transition:color .3s;}
+.cost-val.bump{color:#fff176;}
+.top-btns{display:flex;gap:5px;flex-shrink:0;}
+.tbtn{padding:5px 11px;border:none;border-radius:7px;cursor:pointer;font-size:10px;font-weight:700;font-family:inherit;transition:all .15s;white-space:nowrap;}
+.tbtn:hover{transform:translateY(-1px);filter:brightness(1.2);}
+.tbtn-clr{background:rgba(255,255,255,.08);color:#81c784;border:1px solid rgba(255,255,255,.12);}
+.tbtn-ss{background:#1b5e20;color:#a5d6a7;border:1px solid #2e7d32;}
+.tbtn-share{background:#1565c0;color:#bbdefb;border:1px solid #1976d2;}
+.tbtn-rec{background:#b71c1c;color:#ffcdd2;}
+.tbtn-rec.on{background:#e53935;animation:rb 1s infinite;}
+.tbtn-done{background:linear-gradient(135deg,#f9a825,#ff6f00);color:#fff;font-size:11px;border:none;box-shadow:0 2px 8px rgba(249,168,37,.3);}
+.tbtn-done:hover{box-shadow:0 4px 14px rgba(249,168,37,.5);}
+@keyframes rb{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* MAIN */
+#main{display:flex;flex:1;overflow:hidden;}
+#cw{flex:1;position:relative;overflow:hidden;}
+#cw.placing{cursor:crosshair;}
+#cw.moving{cursor:move;}
+canvas{display:block;}
+
+/* OVERLAYS */
+#ptip{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.82);color:#fff;padding:7px 18px;border-radius:24px;font-size:11px;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap;border:1px solid rgba(255,255,255,.15);}
+#ptip.on{opacity:1;}
+
+/* HELP CARD */
+#help-card{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.78);border:1.5px solid rgba(105,240,174,.5);border-radius:12px;padding:9px 18px;font-size:11px;color:#c8e6c9;pointer-events:none;white-space:nowrap;line-height:1.8;text-align:center;z-index:40;}
+
+/* SELECTED PANEL - bottom center floating bar */
+#sel-panel{
+  position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
+  background:rgba(5,15,7,.97);border:2px solid #69f0ae;border-radius:18px;
+  padding:12px 20px;font-size:12px;display:none;
+  backdrop-filter:blur(10px);
+  flex-direction:row;align-items:center;gap:16px;
+  white-space:nowrap;
+  box-shadow:0 8px 32px rgba(0,0,0,.6), 0 0 0 1px rgba(105,240,174,.2);
+  z-index:50;
+}
+#sel-panel.visible{display:flex;}
+.sp-icon{font-size:22px;}
+.sp-info{display:flex;flex-direction:column;gap:1px;}
+.sp-name{font-weight:700;color:#69f0ae;font-size:13px;}
+.sp-desc{color:#4caf50;font-size:10px;}
+.sp-actions{display:flex;gap:8px;}
+.sp-btn{padding:8px 16px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;border:none;transition:all .15s;white-space:nowrap;}
+.sp-btn:hover{transform:translateY(-1px);filter:brightness(1.15);}
+.sp-move{background:#1565c0;color:#bbdefb;}
+.sp-move.active{background:#ff9800;color:#fff;}
+.sp-del{background:#c62828;color:#ffcdd2;}
+.sp-cls{background:rgba(255,255,255,.1);color:#81c784;border:1px solid rgba(255,255,255,.15);}
+
+/* GHOST PANEL */
+#ghost-panel{position:absolute;top:14px;right:14px;background:rgba(8,20,10,.9);border:1px solid #1e4d22;border-radius:12px;padding:12px 14px;font-size:12px;display:none;max-width:180px;}
+.gp-name{font-weight:700;color:#69f0ae;font-size:13px;}
+.gp-price{color:#fff176;font-size:11px;margin:3px 0;}
+.gp-desc{color:#81c784;font-size:10px;line-height:1.5;}
+
+/* FARMER SPEECH */
+#farmer-speech{position:absolute;pointer-events:none;display:none;}
+.bubble{background:white;border-radius:14px;padding:8px 12px;font-size:11px;color:#1b5e20;font-weight:600;line-height:1.5;max-width:180px;box-shadow:0 4px 16px rgba(0,0,0,.3);position:relative;border:2px solid #a5d6a7;}
+.bubble::after{content:'';position:absolute;bottom:-10px;left:18px;border:5px solid transparent;border-top-color:white;}
+
+/* REC BADGE */
+#rec-badge{position:absolute;top:14px;right:14px;background:rgba(183,28,28,.9);color:white;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;display:none;align-items:center;gap:5px;}
+.rd{width:6px;height:6px;background:#fff;border-radius:50%;animation:rb 1s infinite;}
+#cam-hint{position:absolute;bottom:14px;right:14px;background:rgba(0,0,0,.5);color:#444;padding:5px 9px;border-radius:7px;font-size:9px;line-height:2;pointer-events:none;}
+
+/* SIDEBAR */
+#sidebar{width:186px;background:#080e09;border-left:1px solid #162318;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.sb-hd{padding:8px 11px 6px;background:#0b1a0d;border-bottom:1px solid #162318;flex-shrink:0;}
+.sb-hd h2{font-size:10px;font-weight:700;color:#4caf50;letter-spacing:1px;text-transform:uppercase;}
+.sb-hd p{font-size:9px;color:#2e5e32;margin-top:1px;}
+
+/* CROP SELECTOR */
+.crop-section{padding:8px 10px;border-bottom:1px solid #162318;flex-shrink:0;}
+.crop-label{font-size:9.5px;color:#4caf50;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.crop-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.crop-btn{background:#0b1a0d;border:1.5px solid #162318;border-radius:7px;padding:5px 4px;cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
+.crop-btn:hover{border-color:#388e3c;}
+.crop-btn.sel{border-color:#69f0ae;background:#0d2010;}
+.crop-ico{font-size:16px;display:block;}
+.crop-nm{font-size:9px;color:#81c784;margin-top:2px;}
+
+.eq-list{overflow-y:auto;flex:1;padding:5px;}
+.eq-list::-webkit-scrollbar{width:3px;}
+.eq-list::-webkit-scrollbar-thumb{background:#162318;border-radius:3px;}
+.ec{background:#0b1a0d;border:1.5px solid #162318;border-radius:8px;padding:7px;margin-bottom:4px;cursor:pointer;transition:all .15s;}
+.ec:hover{border-color:#388e3c;background:#0f2010;}
+.ec.sel{border-color:#69f0ae;background:#0d2010;box-shadow:0 0 0 2px rgba(105,240,174,.12);}
+.ec-row{display:flex;align-items:center;gap:5px;margin-bottom:2px;}
+.ec-ico{font-size:16px;line-height:1;}
+.ec-nm{font-size:10.5px;font-weight:700;color:#c8e6c9;flex:1;}
+.ec-n{background:#162318;color:#69f0ae;font-size:9px;font-weight:700;border-radius:6px;padding:1px 5px;min-width:16px;text-align:center;}
+.ec-pr{font-size:9.5px;color:#fff176;margin-bottom:1px;}
+.ec-ds{font-size:9px;color:#2e5e32;line-height:1.4;}
+
+/* BOTTOM */
+#bot{height:100px;background:#050a06;border-top:1px solid #162318;flex-shrink:0;display:flex;align-items:stretch;}
+.ov{width:118px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 8px;border-right:1px solid #162318;gap:2px;}
+.ov-lbl{font-size:8.5px;color:#2e5e32;letter-spacing:1px;text-transform:uppercase;}
+.ov-ico{font-size:18px;line-height:1;}
+.ov-st{font-size:16px;font-weight:700;transition:color .5s;line-height:1.1;}
+.ov-sub{font-size:8.5px;color:#2e5e32;text-align:center;}
+.mts{flex:1;display:flex;align-items:center;padding:0 12px;gap:12px;overflow-x:auto;}
+.mts::-webkit-scrollbar{display:none;}
+.mt{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:70px;flex:1;}
+.mt-lbl{display:flex;align-items:center;gap:2px;font-size:9px;color:#2e5e32;white-space:nowrap;}
+.mt-bar{width:100%;height:6px;background:#0d2010;border-radius:3px;overflow:hidden;border:1px solid #162318;}
+.mt-fill{height:100%;border-radius:3px;transition:width .85s cubic-bezier(.4,0,.2,1),background .6s;min-width:2px;}
+.mt-bot{display:flex;justify-content:space-between;width:100%;align-items:flex-end;}
+.mt-num{font-size:12px;font-weight:700;color:#e8f5e9;}
+.mt-unit{font-size:8.5px;color:#2e5e32;}
+.mt-bdg{font-size:8px;font-weight:700;padding:1px 4px;border-radius:6px;white-space:nowrap;}
+.g{background:#1b5e20;color:#69f0ae;}.o{background:#33691e;color:#ccff90;}.w{background:#e65100;color:#ffe0b2;}.b{background:#7f0000;color:#ffcdd2;}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:#0d2010;border:1px solid #2e5e32;border-radius:18px;padding:22px;max-width:460px;width:100%;position:relative;max-height:88vh;overflow-y:auto;}
+.modal-title{font-size:14px;font-weight:700;color:#69f0ae;margin-bottom:12px;}
+.modal-close{position:absolute;top:12px;right:12px;background:rgba(255,255,255,.08);border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;color:#81c784;font-size:14px;}
+.modal-close:hover{background:rgba(255,255,255,.15);}
+#save-modal img{width:100%;border-radius:10px;border:1px solid #1e4d22;display:block;margin-bottom:12px;}
+.modal-dl-btn{width:100%;padding:9px;background:#1b5e20;color:#c8e6c9;border:1px solid #2e7d32;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;}
+.modal-dl-btn:hover{background:#2e7d32;}
+.share-url-wrap{background:#080e09;border:1px solid #1e4d22;border-radius:9px;padding:9px 12px;margin-bottom:10px;word-break:break-all;font-size:10px;color:#81c784;line-height:1.6;max-height:72px;overflow-y:auto;}
+.sb-copy{flex:1;padding:8px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;border:none;background:#1565c0;color:#bbdefb;}
+.toast{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:#1b5e20;color:#c8e6c9;padding:8px 20px;border-radius:22px;font-size:12px;font-weight:700;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none;border:1px solid #2e7d32;}
+.toast.show{opacity:1;}
+#student-name-input:focus{border-color:#69f0ae;box-shadow:0 0 0 3px rgba(105,240,174,.15);}
+#student-name-input::placeholder{color:#2e5e32;}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="top-left">
+    <h1>🌱 나의 스마트팜 꾸미기</h1>
+    <p>장비 선택 → 온실 클릭 배치 | 배치된 장비 클릭 → 이동·제거</p>
+  </div>
+  <div class="cost-box">
+    <span class="cost-label">💰 총 설치 비용</span>
+    <span class="cost-val" id="cv" data-cur="0">0원</span>
+  </div>
+  <div class="top-btns">
+    <button class="tbtn tbtn-clr" onclick="clearAll()">🗑 초기화</button>
+    <button class="tbtn tbtn-ss" onclick="takeShot()">📷 저장</button>
+    <button class="tbtn tbtn-share" onclick="shareScene()">🔗 공유</button>
+    <button class="tbtn tbtn-rec" id="rb" onclick="toggleRec()">⏺ 녹화</button>
+    <button class="tbtn tbtn-done" onclick="openNameModal()">🏆 완성 리포트</button>
+  </div>
+</div>
+
+<div id="main">
+  <div id="cw">
+    <canvas id="c"></canvas>
+
+    <!-- Help hint -->
+    <div id="help-card">
+      🟡 <b style="color:#ffcc80">반짝이는 위치</b>가 추천 위치예요 &nbsp;|&nbsp; 원하는 곳 클릭으로 배치 &nbsp;|&nbsp; 장비 <b style="color:#69f0ae">우클릭</b> → 이동·제거
+    </div>
+
+    <div id="ptip"></div>
+
+    <div id="ghost-panel">
+      <div class="gp-name" id="gn"></div>
+      <div class="gp-price" id="gp2"></div>
+      <div class="gp-desc" id="gd"></div>
+      <div class="gp-hint" id="gh" style="font-size:10px;color:#ffcc80;margin-top:6px;line-height:1.5;border-top:1px solid #1e4d22;padding-top:6px;"></div>
+      <div style="font-size:10px;color:#4caf50;margin-top:5px;">✅ 원하는 위치에 클릭해서 배치!</div>
+    </div>
+
+    <!-- Selected item controls - bottom center bar -->
+    <div id="sel-panel">
+      <div class="sp-icon" id="si"></div>
+      <div class="sp-info">
+        <div class="sp-name" id="sn"></div>
+        <div class="sp-desc" id="sd"></div>
+      </div>
+      <div class="sp-actions">
+        <button class="sp-btn sp-move" id="move-btn" onclick="toggleMove()">✋ 위치 이동</button>
+        <button class="sp-btn sp-del" onclick="removeSelected()">🗑 제거하기</button>
+        <button class="sp-btn sp-cls" onclick="closeInfo()">✕ 닫기</button>
+      </div>
+    </div>
+
+    <!-- Farmer speech bubble -->
+    <div id="farmer-speech">
+      <div class="bubble" id="farmer-bubble">안녕! 장비를 설치해 줘요!</div>
+    </div>
+
+    <div id="rec-badge"><div class="rd"></div>REC</div>
+    <div id="cam-hint">드래그: 회전<br>우클릭: 이동<br>휠: 줌</div>
+  </div>
+
+  <div id="sidebar">
+    <div class="sb-hd">
+      <h2>🌾 작물 선택</h2>
+      <p>재배할 작물을 골라요</p>
+    </div>
+    <div class="crop-section">
+      <div class="crop-grid" id="crop-grid"></div>
+    </div>
+    <div class="sb-hd" style="border-top:1px solid #162318;">
+      <h2>📦 장비 목록</h2>
+      <p>선택 후 온실 안 클릭</p>
+    </div>
+    <div class="eq-list" id="eql"></div>
+  </div>
+</div>
+
+<div id="bot">
+  <div class="ov">
+    <div class="ov-lbl">농사 상태</div>
+    <div class="ov-ico" id="oi">🌱</div>
+    <div class="ov-st" id="os">준비중</div>
+    <div class="ov-sub" id="osub">장비를 배치하세요</div>
+  </div>
+  <div class="mts" id="mts" style="flex-direction:column;align-items:stretch;padding:6px 14px;gap:0;">
+    <div style="font-size:9px;color:#2e5e32;margin-bottom:4px;flex-shrink:0;">💡 항목 클릭 → 개선 힌트 보기</div>
+    <div style="display:flex;flex:1;gap:12px;align-items:center;overflow-x:auto;" id="mts-inner"></div>
+  </div>
+</div>
+
+<!-- HINT MODAL -->
+<div class="modal-overlay" id="hint-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box" style="max-width:400px;">
+    <button class="modal-close" onclick="document.getElementById('hint-modal').classList.remove('open')">✕</button>
+    <div id="hint-modal-content"></div>
+  </div>
+</div>
+
+<!-- NAME INPUT MODAL -->
+<div class="modal-overlay" id="name-modal" onclick="if(event.target===this)this.classList.remove('open')" style="z-index:215;">
+  <div class="modal-box" style="max-width:360px;text-align:center;">
+    <div style="font-size:28px;margin-bottom:10px;">🌱</div>
+    <div class="modal-title" style="text-align:center;margin-bottom:6px;">이름을 입력해주세요!</div>
+    <div style="font-size:12px;color:#81c784;margin-bottom:18px;">리포트에 내 이름이 들어가요</div>
+    <input id="student-name-input" type="text" placeholder="이름을 입력하세요" maxlength="20"
+      style="width:100%;padding:12px 16px;background:#0d2010;border:2px solid #2e5e32;border-radius:10px;
+      color:#c8e6c9;font-size:15px;font-family:inherit;outline:none;text-align:center;margin-bottom:16px;"
+      onkeydown="if(event.key==='Enter')confirmName()"
+    />
+    <button class="modal-dl-btn" onclick="confirmName()" style="width:100%;padding:12px;font-size:14px;">
+      🏆 리포트 만들기
+    </button>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="modal-overlay" id="report-modal" onclick="if(event.target===this)this.classList.remove('open')" style="z-index:210;">
+  <div class="modal-box" id="report-box" style="max-width:620px;padding:0;overflow:hidden;">
+    <div id="report-content" style="max-height:80vh;overflow-y:auto;"></div>
+    <div style="display:flex;gap:8px;padding:14px 22px;background:#080e09;border-top:1px solid #1e4d22;flex-wrap:wrap;">
+      <button class="modal-dl-btn" id="report-save-btn" style="flex:1;min-width:140px;">⬇ PNG 저장</button>
+      <button class="modal-dl-btn" onclick="shareReport()" style="flex:1;min-width:140px;background:#1565c0;border-color:#1976d2;">🔗 링크 공유</button>
+      <button class="modal-dl-btn" onclick="document.getElementById('report-modal').classList.remove('open')" style="flex:0 0 70px;background:#1a3320;border-color:#2e5e32;color:#81c784;">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT SHARE MODAL -->
+<div class="modal-overlay" id="report-share-modal" onclick="if(event.target===this)this.classList.remove('open')" style="z-index:220;">
+  <div class="modal-box" style="max-width:400px;">
+    <button class="modal-close" onclick="document.getElementById('report-share-modal').classList.remove('open')">✕</button>
+    <div class="modal-title">🔗 리포트 공유하기</div>
+    <div style="background:rgba(255,255,255,.05);border:1px solid #1e4d22;border-radius:10px;padding:12px;margin-bottom:14px;">
+      <div style="font-size:11px;color:#69f0ae;font-weight:700;margin-bottom:4px;">📋 공유 내용</div>
+      <div style="font-size:11px;color:#81c784;" id="report-share-summary">--</div>
+    </div>
+    <div style="font-size:11px;color:#81c784;line-height:1.9;margin-bottom:14px;">
+      아래 버튼을 누르면 <b style="color:#c8e6c9">리포트가 담긴 파일</b>이 다운로드돼요.<br>
+      파일을 친구나 선생님께 전달하면 리포트가 바로 열려요! 🌱
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="modal-dl-btn" id="report-share-dl-btn" style="flex:1;background:#1565c0;border-color:#1976d2;">⬇ 리포트 파일 다운로드</button>
+      <button class="modal-dl-btn" onclick="saveReport()" style="flex:1;">🖼 PNG 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAVE MODAL -->
+<div class="modal-overlay" id="save-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('save-modal').classList.remove('open')">✕</button>
+    <div class="modal-title">📷 스마트팜 저장</div>
+    <img id="save-img" src="" alt="preview"/>
+    <button class="modal-dl-btn" id="dl-btn">⬇ PNG 다운로드</button>
+  </div>
+</div>
+
+<!-- SHARE MODAL -->
+<div class="modal-overlay" id="share-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box" style="max-width:400px;">
+    <button class="modal-close" onclick="document.getElementById('share-modal').classList.remove('open')">✕</button>
+    <div class="modal-title">🔗 스마트팜 공유하기</div>
+    <div style="background:rgba(255,255,255,.05);border:1px solid #1e4d22;border-radius:10px;padding:12px;margin-bottom:14px;">
+      <div style="font-size:11px;color:#69f0ae;font-weight:700;margin-bottom:4px;">📦 현재 내 스마트팜</div>
+      <div style="font-size:11px;color:#81c784;" id="share-item-count">--</div>
+    </div>
+    <div style="font-size:11px;color:#81c784;line-height:1.9;margin-bottom:14px;">
+      아래 버튼을 누르면 <b style="color:#c8e6c9">내 스마트팜이 담긴 파일</b>이 다운로드돼요.<br>
+      파일을 친구나 선생님께 보내면 똑같은 스마트팜을 볼 수 있어요! 🌱
+    </div>
+    <button class="modal-dl-btn" id="share-dl-btn">⬇ 공유 파일 다운로드 (.html)</button>
+    <div style="font-size:9.5px;color:#2e5e32;text-align:center;margin-top:8px;">이메일·카카오톡·USB로 파일을 전달하면 누구나 열 수 있어요</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ═══ DATA ═══════════════════════════════════ */
+const CROPS=[
+  {id:'tomato',  icon:'🍅', name:'토마토', ideal:{temp:[18,26],humidity:[55,75],water:[45,70]}, color:0xe53935},
+  {id:'lettuce', icon:'🥬', name:'상추',   ideal:{temp:[15,22],humidity:[60,80],water:[50,72]}, color:0x43a047},
+  {id:'pepper',  icon:'🌶️', name:'고추',   ideal:{temp:[20,28],humidity:[50,70],water:[40,65]}, color:0xff6f00},
+  {id:'melon',   icon:'🍈', name:'멜론',   ideal:{temp:[22,30],humidity:[45,65],water:[40,62]}, color:0xfdd835},
+  {id:'spinach', icon:'🥦', name:'시금치', ideal:{temp:[10,20],humidity:[65,85],water:[55,78]}, color:0x2e7d32},
+  {id:'corn',    icon:'🌽', name:'옥수수', ideal:{temp:[18,28],humidity:[50,70],water:[42,68]}, color:0xffb300},
+];
+const EQ=[
+  {id:'temp',   icon:'🌡️',name:'온도 센서',  price:150000,col:0xff6b35,
+   desc:'내부 온도를 실시간 확인',fx:{temp:+12},
+   zone:'wall',
+   hint:'📌 온도 센서는 측면 벽면에 부착해요!\n바람이 잘 통하는 벽 중간 높이에 달면 가장 정확해요.',
+   recPos:[{x:-4.5,y:1.4,z:3},{x:-4.5,y:1.4,z:-3},{x:4.5,y:1.4,z:0}]},
+  {id:'heater', icon:'🔥', name:'난방기',      price:800000,col:0xff8c00,
+   desc:'내부 온도 높여 성장 촉진',fx:{temp:+25},
+   zone:'floor',
+   hint:'📌 난방기는 온실 바닥 어디에나 설치할 수 있어요!\n양쪽 끝 장비 공간(주황색 줄무늬 구역)에 놓으면 열이 온실 전체에 잘 퍼져요.',
+   recPos:[{x:-3,y:0,z:5.8},{x:3,y:0,z:5.8},{x:-3,y:0,z:-5.8},{x:3,y:0,z:-5.8}]},
+  {id:'humid',  icon:'💧', name:'습도 센서',   price:120000,col:0x42a5f5,
+   desc:'내부 습도를 실시간 확인',fx:{humidity:+10},
+   zone:'wall',
+   hint:'📌 습도 센서도 벽면에 부착해요!\n작물 높이(0.5~1.5m) 위치 벽에 달면 가장 잘 측정돼요.',
+   recPos:[{x:-4.5,y:1.0,z:0},{x:4.5,y:1.0,z:0},{x:4.5,y:1.0,z:4}]},
+  {id:'water',  icon:'🚿', name:'관수 장비',   price:500000,col:0x1976d2,
+   desc:'자동 물공급, 수분 유지',fx:{humidity:+18,water:+28},
+   zone:'floor',
+   hint:'📌 관수 장비는 온실 바닥 어디든 설치 가능해요!\n양쪽 끝 장비 공간(주황색 줄무늬 구역)이나 통로에 놓으면 작물에 골고루 물을 줄 수 있어요.',
+   recPos:[{x:-2,y:0,z:5.8},{x:2,y:0,z:5.8},{x:-2,y:0,z:-5.8},{x:2,y:0,z:-5.8}]},
+  {id:'co2',    icon:'🌫️',name:'CO₂ 센서',   price:200000,col:0x26a69a,
+   desc:'CO₂ 농도 측정·조절 보조',fx:{co2:-16},
+   zone:'wall',
+   hint:'📌 CO₂ 센서는 환기팬 맞은편 벽에 설치해요!\n공기 흐름이 지나가는 벽면 중간 높이가 가장 정확해요.',
+   recPos:[{x:4.5,y:1.5,z:3},{x:-4.5,y:1.5,z:-3},{x:4.5,y:1.5,z:-3}]},
+  {id:'fan',    icon:'💨', name:'환기팬',      price:350000,col:0x78909c,
+   desc:'CO₂ 낮추고 환기 개선',fx:{co2:-22,temp:-6},
+   zone:'wall-mid',
+   hint:'📌 환기팬은 측면 벽 위쪽에 설치해요!\n0.8m 이상 높은 벽면을 클릭하면 부착돼요.',
+   recPos:[{x:-4.5,y:2.2,z:4},{x:4.5,y:2.2,z:-4},{x:-4.5,y:2.2,z:-4},{x:4.5,y:2.2,z:4}]},
+  {id:'curtain',icon:'🪟', name:'자동개폐기', price:450000,col:0xffd54f,
+   desc:'커튼 제어로 채광 최적화',fx:{light:+22},
+   zone:'wall-mid',
+   hint:'📌 자동개폐기는 측면 벽 0.8m 이상 높이에 달아요!\n창문이나 환기구 옆 벽을 클릭하면 설치돼요.',
+   recPos:[{x:-4.5,y:2.6,z:0},{x:4.5,y:2.6,z:0},{x:-4.5,y:2.6,z:4}]},
+  {id:'drone',  icon:'🚁', name:'농사형 드론',price:1200000,col:0x8d6e63,
+   desc:'드론으로 물주기·모니터링',fx:{water:+18,light:+6},
+   zone:'floor',
+   hint:'📌 드론 이착륙 지점은 바닥 어디든 설치 가능해요!\n양쪽 끝 장비 공간(주황색 줄무늬 구역)에 놓으면 이착륙이 편해요.',
+   recPos:[{x:0,y:0,z:5.8},{x:0,y:0,z:-5.8},{x:-3,y:0,z:5.8}]},
+  {id:'cctv',   icon:'📷', name:'CCTV',       price:300000,col:0x37474f,
+   desc:'내·외부 보안·생육 확인',fx:{temp:+2},
+   zone:'wall-mid',
+   hint:'📌 CCTV는 벽면 0.8m 이상 높이에 달아요!\n모서리 벽 위쪽에 설치하면 전체를 한눈에 볼 수 있어요.',
+   recPos:[{x:-4.5,y:2.8,z:-6.2},{x:4.5,y:2.8,z:6.2},{x:-4.5,y:2.8,z:6.2},{x:4.5,y:2.8,z:-6.2}]},
+];
+const PARAMS=[
+  {key:'temp',    lbl:'온도',  ico:'🌡️',unit:'°C',base:14,ideal:[18,28],fmt:v=>v.toFixed(1)},
+  {key:'humidity',lbl:'습도',  ico:'💧',unit:'%', base:28,ideal:[50,75],fmt:v=>v.toFixed(0)},
+  {key:'co2',     lbl:'CO₂',  ico:'🌫️',unit:'%', base:65,ideal:[20,50],fmt:v=>v.toFixed(0)},
+  {key:'light',   lbl:'채광',  ico:'☀️',unit:'%', base:40,ideal:[55,85],fmt:v=>v.toFixed(0)},
+  {key:'water',   lbl:'수분',  ico:'🌊',unit:'%', base:22,ideal:[45,72],fmt:v=>v.toFixed(0)},
+];
+const OV=[
+  {ico:'💀',lbl:'매우 나쁨',col:'#ef5350'},
+  {ico:'😰',lbl:'나쁨',    col:'#ef9a9a'},
+  {ico:'😐',lbl:'주의',    col:'#ffb74d'},
+  {ico:'🙂',lbl:'양호',    col:'#aed581'},
+  {ico:'😊',lbl:'좋음',    col:'#69f0ae'},
+  {ico:'🌟',lbl:'최적',    col:'#b9f6ca'},
+];
+const FARMER_LINES={
+  bad:['앗! 이대로면 작물이 죽어요 😱','빨리 장비를 추가해 주세요!','온도·습도가 너무 나빠요 💦'],
+  warn:['조금 더 신경 써 주세요 🤔','환경이 아직 불안정해요.','장비를 더 추가하면 좋겠어요!'],
+  ok:['점점 좋아지고 있어요 🙂','이 정도면 잘 자랄 수 있어요!','조금만 더 개선하면 완벽해요!'],
+  good:['작물이 쑥쑥 자라고 있어요 🌱','아주 좋은 환경이에요! 😊','잘 하고 있어요, 계속 이대로!'],
+  best:['완벽한 스마트팜이에요! 🌟','작물이 최상의 상태로 자라요!','이 농장 최고예요! 🎉'],
+  nocrop:['어떤 작물을 키울까요?','작물을 선택해 주세요! 🌾','왼쪽에서 작물을 골라봐요!'],
+};
+
+/* ═══ STATE ═══════════════════════════════════ */
+let tool=null, selIdx=null, moveMode=false;
+let items=[], totalCost=0;
+let selectedCrop=null;
+let isDrag=false, isRBt=false, lmx=0, lmy=0;
+let mRec=null, recChunks=[];
+const live={}, tgt={};
+PARAMS.forEach(p=>{live[p.key]=p.base; tgt[p.key]=p.base;});
+let farmScore=0, lastBubbleUpdate=0;
+let farmerMesh=null;
+let cropMeshes=[];
+let cropGrowth=0; // 0-1
+
+/* ═══ THREE.JS ═══════════════════════════════ */
+const CV=document.getElementById('c'), cw=document.getElementById('cw');
+const renderer=new THREE.WebGLRenderer({canvas:CV,antialias:true,preserveDrawingBuffer:true});
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x7ec8e3);
+scene.fog=new THREE.FogExp2(0xaad8e8,.016);
+const camera=new THREE.PerspectiveCamera(52,1,.1,300);
+const sph={th:.68,ph:.48,r:22};
+const camTgt=new THREE.Vector3(0,1.5,0);
+
+function updCam(){
+  camera.position.set(
+    camTgt.x+sph.r*Math.sin(sph.ph)*Math.sin(sph.th),
+    camTgt.y+sph.r*Math.cos(sph.ph),
+    camTgt.z+sph.r*Math.sin(sph.ph)*Math.cos(sph.th)
+  );
+  camera.lookAt(camTgt);
+}
+updCam();
+
+scene.add(new THREE.AmbientLight(0xd0f8d0,.7));
+const sun=new THREE.DirectionalLight(0xfffde7,1.1);
+sun.position.set(15,22,12); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-18,right:18,top:18,bottom:-18,near:1,far:60});
+scene.add(sun);
+const fill=new THREE.DirectionalLight(0xc0d8ff,.3);
+fill.position.set(-10,6,-8); scene.add(fill);
+
+// Ground
+const gnd=new THREE.Mesh(new THREE.PlaneGeometry(100,100),new THREE.MeshLambertMaterial({color:0x3d7322}));
+gnd.rotation.x=-Math.PI/2; gnd.receiveShadow=true; scene.add(gnd);
+for(let i=0;i<5;i++){
+  const r=new THREE.Mesh(new THREE.RingGeometry(10+i*5,12+i*5,32),new THREE.MeshLambertMaterial({color:i%2?0x3d7322:0x4a8c28,side:THREE.DoubleSide}));
+  r.rotation.x=-Math.PI/2; r.position.y=.01; scene.add(r);
+}
+
+// Trees
+function addTree(x,z,h=2.2){
+  const t=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,h*.45,8),new THREE.MeshLambertMaterial({color:0x5d4037}));
+  t.position.set(x,h*.225,z); t.castShadow=true; scene.add(t);
+  const f=new THREE.Mesh(new THREE.ConeGeometry(h*.4,h*.75,8),new THREE.MeshLambertMaterial({color:0x2e7d32}));
+  f.position.set(x,h*.45+h*.375,z); f.castShadow=true; scene.add(f);
+}
+[[-12,0],[-12,6],[-12,-6],[-13,12],[12,10],[13,0],[13,-8],[-11,-12],[0,-13],[6,-14]].forEach(([x,z])=>addTree(x,z));
+
+/* GREENHOUSE */
+const W=10,L=14,WH=3.4,RH=2.6;
+const glassMat=new THREE.MeshPhongMaterial({color:0xd0f0ff,transparent:true,opacity:.14,side:THREE.DoubleSide,shininess:200,specular:0xffffff});
+const frameMat=new THREE.MeshLambertMaterial({color:0xf0f0f0});
+const soilMat=new THREE.MeshLambertMaterial({color:0x5d3d1e});
+const bedMat=new THREE.MeshLambertMaterial({color:0x3e2208});
+
+const fl=new THREE.Mesh(new THREE.PlaneGeometry(W,L),soilMat);
+fl.rotation.x=-Math.PI/2; fl.receiveShadow=true; scene.add(fl);
+
+// ── End-zone equipment areas (both ends, clearly marked) ──
+const endZoneMat=new THREE.MeshLambertMaterial({color:0x795548}); // brownish concrete
+[-1,1].forEach(side=>{
+  const ez=new THREE.Mesh(new THREE.PlaneGeometry(W,1.6),endZoneMat);
+  ez.rotation.x=-Math.PI/2; ez.position.set(0,.015,side*(L/2-0.8)); ez.receiveShadow=true; scene.add(ez);
+  // Dashed border lines
+  for(let x=-4;x<=4;x+=2){
+    const mark=new THREE.Mesh(new THREE.PlaneGeometry(.18,1.5),new THREE.MeshLambertMaterial({color:0xffcc80}));
+    mark.rotation.x=-Math.PI/2; mark.position.set(x,.02,side*(L/2-0.8)); scene.add(mark);
+  }
+  // Label strip
+  const strip=new THREE.Mesh(new THREE.PlaneGeometry(W,.22),new THREE.MeshLambertMaterial({color:0xffb300}));
+  strip.rotation.x=-Math.PI/2; strip.position.set(0,.02,side*(L/2-1.55)); scene.add(strip);
+});
+
+// Crop bed slots
+const BED_POSITIONS=[];
+for(let row=-4;row<=4;row+=2){
+  const bed=new THREE.Mesh(new THREE.BoxGeometry(1.5,.14,L-3.2),bedMat); // beds stop 1.6m from each end
+  bed.position.set(row,.07,0); bed.receiveShadow=true; scene.add(bed);
+  for(let z=-4.8;z<=4.8;z+=1.1){
+    BED_POSITIONS.push({x:row+(Math.random()-.5)*.5, z});
+  }
+}
+
+// Paths
+[-3,-1,1,3].forEach(x=>{
+  const p=new THREE.Mesh(new THREE.PlaneGeometry(.48,L-3.2),new THREE.MeshLambertMaterial({color:0x8d6e63}));
+  p.rotation.x=-Math.PI/2; p.position.set(x,.01,0); scene.add(p);
+});
+
+// Glass walls
+const mkG=(w,h,pos,ry=0)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),glassMat);m.position.set(...pos);m.rotation.y=ry;scene.add(m);};
+mkG(L,WH,[-W/2,WH/2,0],Math.PI/2); mkG(L,WH,[W/2,WH/2,0],-Math.PI/2);
+mkG(W,WH,[0,WH/2,-L/2],0); mkG(W,WH,[0,WH/2,L/2],Math.PI);
+[-L/2,L/2].forEach(z=>{
+  const sh=new THREE.Shape(); sh.moveTo(-W/2,0); sh.lineTo(W/2,0); sh.lineTo(0,RH); sh.closePath();
+  const m=new THREE.Mesh(new THREE.ShapeGeometry(sh),glassMat); m.position.set(0,WH,z); scene.add(m);
+});
+const sW=Math.hypot(W/2,RH), ang=Math.atan2(RH,W/2);
+[-1,1].forEach(s=>{
+  const rm=new THREE.Mesh(new THREE.PlaneGeometry(sW,L+.1),glassMat);
+  rm.position.set(s*W/4,WH+RH/2,0); rm.rotation.z=-s*ang; scene.add(rm);
+});
+
+// Frame
+const post=(x,z)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,WH,8),frameMat);m.position.set(x,WH/2,z);m.castShadow=true;scene.add(m);};
+for(let z=-L/2;z<=L/2;z+=L/4){post(-W/2,z);post(W/2,z);}
+const ridge=new THREE.Mesh(new THREE.BoxGeometry(.09,.09,L+.1),frameMat);ridge.position.set(0,WH+RH,0);scene.add(ridge);
+[-W/2,W/2].forEach(x=>{const e=new THREE.Mesh(new THREE.BoxGeometry(.08,.08,L+.1),frameMat);e.position.set(x,WH,0);scene.add(e);});
+[-L/2,-L/4,0,L/4,L/2].forEach(z=>[-1,1].forEach(s=>{const p=new THREE.Mesh(new THREE.BoxGeometry(sW,.055,.055),frameMat);p.position.set(s*W/4,WH+RH/2,z);p.rotation.z=-s*ang;scene.add(p);}));
+
+// Placement planes
+const mkP=(w,h,pos,rot)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({visible:false,side:THREE.DoubleSide}));m.position.set(...pos);m.rotation.set(...rot);scene.add(m);return m;};
+const flP=mkP(W,L,[0,.05,0],[-Math.PI/2,0,0]);
+const wallP=[
+  mkP(L,WH,[-W/2+.1,WH/2,0],[0,Math.PI/2,0]),
+  mkP(L,WH,[W/2-.1,WH/2,0],[0,-Math.PI/2,0]),
+  mkP(W,WH,[0,WH/2,-L/2+.1],[0,0,0]),
+  mkP(W,WH,[0,WH/2,L/2-.1],[0,Math.PI,0]),
+];
+
+/* ═══ FARMER 3D ═══════════════════════════════ */
+function buildFarmer(){
+  const g=new THREE.Group();
+  const skin=new THREE.MeshLambertMaterial({color:0xffa07a});
+  const shirt=new THREE.MeshLambertMaterial({color:0x4fc3f7});
+  const pants=new THREE.MeshLambertMaterial({color:0x1565c0});
+  const hat=new THREE.MeshLambertMaterial({color:0xff8f00});
+  const shoe=new THREE.MeshLambertMaterial({color:0x4e342e});
+
+  // Legs
+  [-1,1].forEach(s=>{
+    const leg=new THREE.Mesh(new THREE.CylinderGeometry(.11,.1,.42,8),pants);
+    leg.position.set(s*.13,.21,0); leg.castShadow=true; g.add(leg);
+    const sh=new THREE.Mesh(new THREE.BoxGeometry(.14,.1,.22),shoe);
+    sh.position.set(s*.13,.05,.06); g.add(sh);
+  });
+  // Body
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(.18,.16,.44,10),shirt);
+  body.position.set(0,.62,0); body.castShadow=true; g.add(body);
+  // Arms
+  [-1,1].forEach(s=>{
+    const arm=new THREE.Mesh(new THREE.CylinderGeometry(.07,.065,.36,8),shirt);
+    arm.position.set(s*.26,.6,0); arm.rotation.z=s*.4; arm.castShadow=true; g.add(arm);
+    const hand=new THREE.Mesh(new THREE.SphereGeometry(.08,8,8),skin);
+    hand.position.set(s*.34,.44,0); g.add(hand);
+  });
+  // Head
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.18,12,12),skin);
+  head.position.set(0,1.0,0); head.castShadow=true; g.add(head);
+  // Eyes
+  [-1,1].forEach(s=>{
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(.04,6,6),new THREE.MeshLambertMaterial({color:0x222}));
+    eye.position.set(s*.07,1.03,.16); g.add(eye);
+  });
+  // Smile
+  const sm=new THREE.Mesh(new THREE.TorusGeometry(.07,.015,4,8,Math.PI),new THREE.MeshLambertMaterial({color:0x333}));
+  sm.position.set(0,.93,.17); sm.rotation.z=Math.PI; g.add(sm);
+  // Hat brim
+  const brim=new THREE.Mesh(new THREE.CylinderGeometry(.28,.28,.04,16),hat);
+  brim.position.set(0,1.16,0); g.add(brim);
+  // Hat top
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(.17,.2,.22,14),hat);
+  top.position.set(0,1.29,0); g.add(top);
+  // Hoe / tool
+  const stick=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.75,6),new THREE.MeshLambertMaterial({color:0x8d6e63}));
+  stick.position.set(.38,.55,.1); stick.rotation.z=-.3; g.add(stick);
+
+  g.scale.setScalar(1.1);
+  g.position.set(3.5,.0,-1);
+  g.rotation.y=-0.6;
+  g.userData.isFarmer=true;
+  scene.add(g);
+  farmerMesh=g;
+}
+buildFarmer();
+
+/* ═══ CROPS 3D ═══════════════════════════════ */
+function buildCropMesh(cropId, growth, pos){
+  const crop=CROPS.find(c=>c.id===cropId);
+  const g=new THREE.Group();
+  const col=new THREE.MeshLambertMaterial({color:crop?crop.color:0x43a047});
+
+  const h=0.12+growth*0.55;
+
+  if(cropId==='tomato'){
+    const stem=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,h,6),new THREE.MeshLambertMaterial({color:0x388e3c}));
+    stem.position.y=h/2; g.add(stem);
+    if(growth>0.4){
+      [0,.7,1.4].forEach(a=>{
+        const fr=new THREE.Mesh(new THREE.SphereGeometry(growth*.09+.03,8,8),col);
+        fr.position.set(Math.cos(a)*(.08+growth*.06), h*.8, Math.sin(a)*(.08+growth*.06));
+        g.add(fr);
+      });
+    }
+  } else if(cropId==='lettuce'){
+    for(let i=0;i<6;i++){
+      const an=i/6*Math.PI*2;
+      const lh=h*(.5+Math.random()*.5);
+      const leaf=new THREE.Mesh(new THREE.ConeGeometry(.1+growth*.06,lh,5),col);
+      leaf.position.set(Math.cos(an)*(.1+growth*.05),lh/2,Math.sin(an)*(.1+growth*.05));
+      leaf.rotation.z=.5+Math.random()*.3;
+      leaf.rotation.y=an; g.add(leaf);
+    }
+    const center=new THREE.Mesh(new THREE.SphereGeometry(.08+growth*.06,8,8),col);
+    center.position.y=h*.3; g.add(center);
+  } else if(cropId==='corn'){
+    const stalk=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,h,7),new THREE.MeshLambertMaterial({color:0x558b2f}));
+    stalk.position.y=h/2; g.add(stalk);
+    if(growth>0.5){
+      const cob=new THREE.Mesh(new THREE.CylinderGeometry(.06,.05,h*.3,8),col);
+      cob.position.set(.08,h*.7,0); cob.rotation.z=.4; g.add(cob);
+    }
+  } else if(cropId==='pepper'){
+    const stalk=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,h,6),new THREE.MeshLambertMaterial({color:0x388e3c}));
+    stalk.position.y=h/2; g.add(stalk);
+    if(growth>0.35){
+      const fr=new THREE.Mesh(new THREE.ConeGeometry(.05,h*.3,6),col);
+      fr.position.set(0,h*.75,0); fr.rotation.z=.2; g.add(fr);
+    }
+  } else {
+    // Generic (spinach, melon, etc.)
+    const stalk=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,h,6),col);
+    stalk.position.y=h/2; g.add(stalk);
+    const top2=new THREE.Mesh(new THREE.SphereGeometry(.09+growth*.06,8,8),col);
+    top2.position.y=h; g.add(top2);
+  }
+
+  g.position.set(pos.x,.14,pos.z);
+  g.castShadow=true;
+  return g;
+}
+
+function rebuildCrops(){
+  cropMeshes.forEach(m=>scene.remove(m));
+  cropMeshes=[];
+  if(!selectedCrop) return;
+  BED_POSITIONS.forEach(pos=>{
+    const m=buildCropMesh(selectedCrop, cropGrowth, pos);
+    scene.add(m); cropMeshes.push(m);
+  });
+}
+
+/* ═══ EQUIPMENT MESH ═══════════════════════ */
+function buildMesh(id,col){
+  const lm=c=>new THREE.MeshLambertMaterial({color:c});
+  const pm=c=>new THREE.MeshPhongMaterial({color:c,shininess:80});
+  const g=new THREE.Group();
+  const add=(geo,m,px=0,py=0,pz=0,rx=0,ry=0,rz=0)=>{const mesh=new THREE.Mesh(geo,m);mesh.position.set(px,py,pz);mesh.rotation.set(rx,ry,rz);mesh.castShadow=true;g.add(mesh);return mesh;};
+
+  if(id==='temp'){add(new THREE.CylinderGeometry(.08,.08,.7,12),lm(0xdedede),0,.35,0);add(new THREE.SphereGeometry(.13,12,12),lm(col),0,.09,0);add(new THREE.CylinderGeometry(.05,.05,.45,8),lm(col),0,.37,0);}
+  else if(id==='heater'){add(new THREE.BoxGeometry(.95,.55,.45),lm(col),0,.28,0);for(let i=-.2;i<=.2;i+=.1)add(new THREE.BoxGeometry(1,.04,.05),lm(0x222),0,.28+i*.9,.25);add(new THREE.BoxGeometry(.72,.08,.36),lm(0xff9800),0,.58,0);}
+  else if(id==='humid'){add(new THREE.CylinderGeometry(.11,.11,.55,12),lm(col),0,.27,0);add(new THREE.SphereGeometry(.09,12,12),lm(0xffffff),0,.58,0);add(new THREE.CylinderGeometry(.035,.035,.12,8),lm(col),0,.71,0);}
+  else if(id==='water'){add(new THREE.CylinderGeometry(.055,.055,1.1,8),lm(col),0,.55,0);add(new THREE.SphereGeometry(.13,12,12),pm(col),0,1.15,0);[0,1,2,3].forEach(a=>{const an=a*Math.PI/2;add(new THREE.CylinderGeometry(.022,.022,.27,6),lm(col),Math.cos(an)*.13,1.15,Math.sin(an)*.13,0,0,Math.PI/4+a*Math.PI/2);});}
+  else if(id==='co2'){add(new THREE.CylinderGeometry(.13,.13,.62,12),lm(col),0,.31,0);add(new THREE.BoxGeometry(.24,.13,.04),pm(0x00bcd4),0,.35,.16);add(new THREE.SphereGeometry(.07,8,8),lm(0x444),0,.66,0);}
+  else if(id==='fan'){add(new THREE.BoxGeometry(.72,.72,.26),lm(col),0,.36,0);const fg=new THREE.Group();fg.position.set(0,.36,.15);for(let b=0;b<4;b++){const bl=new THREE.Mesh(new THREE.BoxGeometry(.055,.28,.03),new THREE.MeshLambertMaterial({color:0xb0bec5}));bl.rotation.z=b*Math.PI/2;bl.position.set(Math.cos(b*Math.PI/2+Math.PI/4)*.1,Math.sin(b*Math.PI/2+Math.PI/4)*.1,0);fg.add(bl);}g.add(fg);g.userData.fg=fg;}
+  else if(id==='curtain'){add(new THREE.CylinderGeometry(.03,.03,.92,8),lm(0x888),0,.82,0,0,0,Math.PI/2);add(new THREE.PlaneGeometry(.82,.72),new THREE.MeshLambertMaterial({color:0xfffde7,transparent:true,opacity:.8,side:THREE.DoubleSide}),0,.45,0);add(new THREE.CylinderGeometry(.035,.035,.06,8),lm(0x999),0,.82,0);}
+  else if(id==='drone'){add(new THREE.BoxGeometry(.32,.12,.32),pm(col),0,0,0);add(new THREE.SphereGeometry(.1,10,10),pm(col),0,.1,0);const am=lm(0x333);[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([dx,dz])=>{add(new THREE.CylinderGeometry(.022,.022,.56,6),am,dx*.27,0,dz*.27,0,0,Math.PI/2);add(new THREE.TorusGeometry(.12,.014,6,16),new THREE.MeshLambertMaterial({color:0x888}),dx*.38,0,dz*.38);});g.userData.isDrone=true;}
+  else if(id==='cctv'){add(new THREE.CylinderGeometry(.04,.04,.42,8),lm(0x333),0,.21,0);add(new THREE.BoxGeometry(.36,.22,.22),lm(col),0,.54,.05);add(new THREE.CylinderGeometry(.07,.06,.17,12),pm(0x111),0,.54,.22,Math.PI/2,0,0);add(new THREE.SphereGeometry(.04,8,8),pm(0x0077bb),0,.54,.31);}
+
+  g.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
+  g.userData.eqId=id;
+  return g;
+}
+
+/* ═══ CROP SELECTOR UI ═══════════════════════ */
+const cropGrid=document.getElementById('crop-grid');
+CROPS.forEach(crop=>{
+  const btn=document.createElement('button');
+  btn.className='crop-btn'; btn.id='crop-'+crop.id;
+  btn.innerHTML=`<span class="crop-ico">${crop.icon}</span><span class="crop-nm">${crop.name}</span>`;
+  btn.onclick=()=>selectCrop(crop.id);
+  cropGrid.appendChild(btn);
+});
+
+function selectCrop(id){
+  selectedCrop=(selectedCrop===id)?null:id;
+  CROPS.forEach(c=>document.getElementById('crop-'+c.id).classList.toggle('sel',c.id===selectedCrop));
+  rebuildCrops();
+  updateFarmerBubble(true);
+}
+
+/* ═══ EQUIPMENT SIDEBAR UI ═══════════════════ */
+const eql=document.getElementById('eql');
+EQ.forEach(eq=>{
+  const d=document.createElement('div'); d.className='ec'; d.id='ec-'+eq.id;
+  d.innerHTML=`<div class="ec-row"><span class="ec-ico">${eq.icon}</span><span class="ec-nm">${eq.name}</span><span class="ec-n" id="en-${eq.id}">0</span></div><div class="ec-pr">💰 ${eq.price.toLocaleString()}원</div><div class="ec-ds">${eq.desc}</div>`;
+  d.onclick=()=>setTool(eq.id);
+  eql.appendChild(d);
+});
+
+/* Ghost mesh + recommended markers */
+let ghostMesh = null;
+const recMarkers = [];
+
+function clearGhost(){
+  if(ghostMesh){ scene.remove(ghostMesh); ghostMesh=null; }
+  recMarkers.forEach(m=>scene.remove(m)); recMarkers.length=0;
+}
+
+function buildGhostMesh(id, col){
+  const g = buildMesh(id, col);
+  g.traverse(c=>{ if(c.isMesh) c.material = ghostGreenMat.clone(); });
+  g.userData.isGhost = true;
+  ghostValid = true;
+  return g;
+}
+
+function showRecMarkers(eq){
+  if(!eq.recPos) return;
+  eq.recPos.forEach(p=>{
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.3, 0.55, 24),
+      new THREE.MeshBasicMaterial({color:0xffcc80, transparent:true, opacity:0.7, side:THREE.DoubleSide, depthWrite:false})
+    );
+    ring.rotation.x = -Math.PI/2;
+    ring.position.set(p.x, Math.max(p.y-0.05, 0.06), p.z);
+    ring.userData.isMarker = true;
+    scene.add(ring);
+    recMarkers.push(ring);
+    // Pulsing label sphere
+    const dot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12, 8, 8),
+      new THREE.MeshBasicMaterial({color:0xffcc80, transparent:true, opacity:0.8})
+    );
+    dot.position.set(p.x, Math.max(p.y, 0.18), p.z);
+    dot.userData.isMarker = true;
+    scene.add(dot);
+    recMarkers.push(dot);
+  });
+}
+
+function setTool(id){
+  clearGhost();
+  tool=(tool===id)?null:id;
+  moveMode=false;
+  selIdx=null; closeInfo();
+  EQ.forEach(e=>document.getElementById('ec-'+e.id).classList.toggle('sel',e.id===tool));
+  cw.className=tool?'placing':'';
+  const gp=document.getElementById('ghost-panel');
+  if(tool){
+    const eq=EQ.find(e=>e.id===id);
+    tip(`「${eq.name}」위치를 고른 후 클릭하면 배치돼요`);
+    document.getElementById('gn').textContent=eq.icon+' '+eq.name;
+    document.getElementById('gp2').textContent='💰 '+eq.price.toLocaleString()+'원';
+    document.getElementById('gd').textContent=eq.desc;
+    document.getElementById('gh').innerHTML=(eq.hint||'').replace(/\n/g,'<br>');
+    gp.style.display='block';
+    // Build ghost
+    ghostMesh = buildGhostMesh(id, eq.col);
+    ghostMesh.visible = false;
+    scene.add(ghostMesh);
+    // Recommended markers
+    showRecMarkers(eq);
+  }else{
+    tip('');
+    gp.style.display='none';
+  }
+}
+
+function tip(msg){const t=document.getElementById('ptip');t.textContent=msg;t.classList.toggle('on',!!msg);}
+
+/* ── Greenhouse bounds & zone rules ── */
+const GH={x1:-4.9,x2:4.9,z1:-6.9,z2:6.9,yMax:5.8};
+
+// Crop bed centers: x=-4,-2,0,2,4 / beds run z=-4.8 to +4.8 (end zones are free)
+const BED_CENTERS=[-4,-2,0,2,4];
+const BED_HALF=0.55;
+const BED_Z={min:-4.9,max:4.9}; // beds don't reach the ends — end zones are free!
+
+function insideGH(pos){
+  return pos.x>=GH.x1&&pos.x<=GH.x2&&pos.z>=GH.z1&&pos.z<=GH.z2&&pos.y<=GH.yMax;
+}
+function isOnBedCenter(pos){
+  if(pos.y>0.25) return false;
+  if(pos.z<BED_Z.min||pos.z>BED_Z.max) return false;
+  return BED_CENTERS.some(cx=>Math.abs(pos.x-cx)<BED_HALF);
+}
+function isWallSurface(worldNormal){
+  // world normal pointing mostly upward = floor, mostly sideways = wall
+  return worldNormal && Math.abs(worldNormal.y)<0.3;
+}
+
+// Convert face normal (local space) to world space
+function worldNormal(hit){
+  if(!hit||!hit.face) return new THREE.Vector3(0,1,0);
+  const n=hit.face.normal.clone();
+  const mat=new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld);
+  return n.applyMatrix3(mat).normalize();
+}
+
+// Returns null=OK or error key
+function validateZone(eqId, pos, normal){
+  const eq=EQ.find(e=>e.id===eqId);
+  if(!insideGH(pos)) return 'outside';
+
+  const zone=eq?.zone||'any';
+
+  // Wall-only sensors
+  if(zone==='wall'){
+    if(!isWallSurface(normal)) return 'needWall';
+    return null;
+  }
+  // Wall mid-height (0.8m+)
+  if(zone==='wall-mid'){
+    if(!isWallSurface(normal)) return 'needWallMid';
+    if(pos.y<0.8) return 'tooLow';
+    return null;
+  }
+  // Floor anywhere inside GH — only block very center of beds
+  if(zone==='floor'){
+    if(isWallSurface(normal)) return 'needFloor';
+    if(isOnBedCenter(pos))    return 'bed';
+    return null;
+  }
+  // Any position inside
+  if(isOnBedCenter(pos)) return 'bed';
+  return null;
+}
+
+/* ── Warning messages ── */
+const WARN={
+  outside:    '🚫 온실 밖이에요!<br><span style="font-size:12px;font-weight:400">장비는 온실 <b>안쪽</b>에만 설치할 수 있어요.<br>초록 미리보기가 뜰 때 클릭하세요!</span>',
+  needWall:   '🧱 이 장비는 <b>벽면</b>에 달아야 해요!<br><span style="font-size:12px;font-weight:400">측면 벽을 클릭하면 부착돼요.<br>노란 마커 위치를 참고하세요 🟡</span>',
+  needWallMid:'🧱 이 장비는 <b>벽면 0.8m 이상</b>에 달아야 해요!<br><span style="font-size:12px;font-weight:400">벽의 중간~위쪽 부분을 클릭해 주세요.<br>실제 온실에서도 높은 곳에 설치해요!</span>',
+  tooLow:     '⬆️ 너무 낮아요!<br><span style="font-size:12px;font-weight:400">벽면 <b>0.8m 이상</b> 높이를 클릭해 주세요.</span>',
+  needFloor:  '👇 이 장비는 <b>바닥</b>에 설치해야 해요!<br><span style="font-size:12px;font-weight:400">온실 양쪽 끝 <b>주황색 줄무늬 구역</b>이나<br>밭 사이 통로 바닥을 클릭하세요!</span>',
+  bed:        '🌱 작물 밭 위는 안 돼요!<br><span style="font-size:12px;font-weight:400">작물이 다칠 수 있어요.<br>👉 온실 양쪽 끝 <b>주황색 구역</b> 또는 <b>밭 사이 통로</b>에 설치하세요!</span>',
+  nothing:    '⚠️ 설치할 수 없는 위치예요!<br><span style="font-size:12px;font-weight:400">온실 <b>안쪽 바닥 또는 벽</b>을 클릭해 주세요.<br>노란 반짝이 마커 위치를 추천해요 🟡</span>',
+};
+
+// Hover tip per zone
+const ZONE_TIP={
+  wall:      '→ 측면 벽을 클릭해서 부착',
+  'wall-mid':'→ 벽면 0.8m 이상 높이를 클릭',
+  floor:     '→ 바닥 어디든 클릭 (밭 중앙 제외)',
+};
+
+/* ── Warning overlay ── */
+let warnTimer=null;
+const warnEl=(()=>{
+  const d=document.createElement('div');
+  d.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(140,20,20,.97);color:#ffcdd2;padding:18px 26px;border-radius:18px;font-size:14px;font-weight:700;text-align:center;line-height:2;z-index:100;pointer-events:none;opacity:0;transition:opacity .25s;border:2px solid #ef5350;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.6);';
+  document.getElementById('cw').appendChild(d);
+  return d;
+})();
+function showWarn(key){
+  warnEl.innerHTML=WARN[key]||WARN.nothing;
+  warnEl.style.opacity='1';
+  clearTimeout(warnTimer);
+  warnTimer=setTimeout(()=>warnEl.style.opacity='0',3000);
+}
+
+/* ── Ghost materials ── */
+const ghostGreenMat=new THREE.MeshLambertMaterial({color:0x69f0ae,transparent:true,opacity:0.45,depthWrite:false});
+const ghostRedMat  =new THREE.MeshLambertMaterial({color:0xef5350,transparent:true,opacity:0.5, depthWrite:false});
+let ghostValid=true;
+
+function setGhostColor(valid){
+  if(ghostValid===valid||!ghostMesh) return;
+  ghostValid=valid;
+  const mat=valid?ghostGreenMat:ghostRedMat;
+  ghostMesh.traverse(c=>{if(c.isMesh)c.material=mat.clone();});
+}
+
+/* ── Mousemove: update ghost + real-time tip ── */
+cw.addEventListener('mousemove', e=>{
+  if(!tool || !ghostMesh) return;
+  const rect=CV.getBoundingClientRect();
+  mv.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mv.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  rc.setFromCamera(mv,camera);
+
+  const hits=rc.intersectObjects([flP,...wallP]);
+  if(hits.length){
+    const pos=hits[0].point;
+    const wn=worldNormal(hits[0]);
+    const err=validateZone(tool,pos,wn);
+
+    ghostMesh.position.copy(pos);
+    ghostMesh.position.y=(tool==='drone')?1.6:0;
+    if(isWallSurface(wn)){
+      ghostMesh.lookAt(pos.clone().add(wn.clone().multiplyScalar(5)));
+      ghostMesh.position.y=pos.y;
+    }
+    ghostMesh.visible=true;
+
+    if(!err){
+      setGhostColor(true);
+      const eq=EQ.find(e=>e.id===tool);
+      tip(`✅ 「${eq?.name}」 클릭하면 여기에 설치!`);
+    } else {
+      setGhostColor(false);
+      const eq=EQ.find(e=>e.id===tool);
+      const zone=eq?.zone||'any';
+      if(err==='bed') tip('🌱 밭 중앙은 안 돼요! 끝 공간·통로·벽면에 설치하세요');
+      else tip('⛔ '+(ZONE_TIP[zone]||'올바른 위치를 클릭하세요'));
+    }
+    return;
+  }
+
+  ghostMesh.visible=false;
+  setGhostColor(false);
+  tip('⛔ 온실 안쪽을 클릭하세요');
+});
+
+/* ═══ RAYCASTING ══════════════════════════════ */
+const rc=new THREE.Raycaster(), mv=new THREE.Vector2();
+
+/* ═══ ORBIT ═══════════════════════════════════ */
+cw.addEventListener('mousedown',e=>{
+  isDrag=false;
+  isRBt=(e.button===2);
+  lmx=e.clientX;lmy=e.clientY;
+  cw.addEventListener('mousemove',onMv);
+});
+document.addEventListener('mouseup',()=>{cw.removeEventListener('mousemove',onMv);setTimeout(()=>isDrag=false,10);});
+
+// Right-click: select item if hit, otherwise pan
+cw.addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  if(isDrag)return;
+  const rect=CV.getBoundingClientRect();
+  mv.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mv.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  rc.setFromCamera(mv,camera);
+  const ms=[];
+  items.forEach((it,i)=>{if(it)it.grp.traverse(c=>{if(c.isMesh){c.userData._i=i;ms.push(c);}});});
+  const hits=rc.intersectObjects(ms);
+  if(hits.length){
+    openInfo(hits[0].object.userData._i);
+    showToast('🖱 장비를 선택했어요! 이동하거나 제거할 수 있어요.');
+  } else {
+    closeInfo();
+  }
+});
+
+function onMv(e){
+  const dx=e.clientX-lmx, dy=e.clientY-lmy;
+  if(Math.abs(dx)>2||Math.abs(dy)>2)isDrag=true;
+  if(isRBt){const r=new THREE.Vector3(),u=new THREE.Vector3(0,1,0);camera.getWorldDirection(r);r.cross(u).normalize();camTgt.addScaledVector(r,-dx*.02);camTgt.y=Math.max(0,camTgt.y+dy*.02);}
+  else{sph.th-=dx*.008;sph.ph=Math.max(.05,Math.min(Math.PI/2.05,sph.ph-dy*.006));}
+  lmx=e.clientX;lmy=e.clientY;updCam();
+}
+cw.addEventListener('wheel',e=>{sph.r=Math.max(4,Math.min(55,sph.r+e.deltaY*.05));updCam();e.preventDefault();},{passive:false});
+
+/* ═══ RAYCASTING / CLICK ══════════════════════ */
+
+cw.addEventListener('click',e=>{
+  if(isDrag)return;
+  const rect=CV.getBoundingClientRect();
+  mv.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mv.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  rc.setFromCamera(mv,camera);
+
+  if(tool){
+    const hits=rc.intersectObjects([flP,...wallP]);
+    if(!hits.length){ showWarn('nothing'); return; }
+    const pos=hits[0].point;
+    const wn=worldNormal(hits[0]);
+    const err=validateZone(tool,pos,wn);
+    if(err){ showWarn(err); return; }
+    placeItem(tool, pos, wn);
+    return;
+  }
+
+  if(moveMode && selIdx!==null){
+    const hits=rc.intersectObjects([flP,...wallP]);
+    if(!hits.length){ showWarn('nothing'); return; }
+    const pos=hits[0].point;
+    const wn=worldNormal(hits[0]);
+    const it=items[selIdx]; if(!it)return;
+    const err=validateZone(it.id,pos,wn);
+    if(err){ showWarn(err); return; }
+    it.grp.position.copy(pos); it.grp.position.y=it.baseY;
+    if(isWallSurface(wn)){
+      it.grp.lookAt(pos.clone().add(wn.clone().multiplyScalar(5)));
+      it.grp.position.y=pos.y; it.baseY=pos.y;
+    }
+    exitMoveMode();
+    showToast('✅ 위치가 변경되었어요!');
+    return;
+  }
+
+  // Select item
+  const ms=[];
+  items.forEach((it,i)=>{if(it&&!it.grp.userData.isFarmer)it.grp.traverse(c=>{if(c.isMesh){c.userData._i=i;ms.push(c);}});});
+  const hits=rc.intersectObjects(ms);
+  if(hits.length)openInfo(hits[0].object.userData._i);
+  else closeInfo();
+});
+
+function placeItem(id,pos,wn){
+  clearGhost();
+  const eq=EQ.find(e=>e.id===id);
+  const grp=buildMesh(id,eq.col);
+  grp.position.copy(pos); grp.position.y=0;
+  if(isWallSurface(wn)){grp.lookAt(pos.clone().add(wn.clone().multiplyScalar(5)));grp.position.y=pos.y;}
+  if(id==='drone')grp.position.y=1.6;
+  scene.add(grp);
+  const idx=items.length;
+  items.push({grp,id,eq,baseY:grp.position.y});
+  grp.traverse(c=>{if(c.isMesh)c.userData._i=idx;});
+  totalCost+=eq.price; animCost(totalCost);
+  const cnt=document.getElementById('en-'+id);
+  cnt.textContent=parseInt(cnt.textContent||0)+1;
+  recalcTgt(); bounceIn(grp);
+  // Keep tool active so user can place more; Esc or sidebar click to cancel
+  // Rebuild ghost for next placement
+  ghostMesh = buildGhostMesh(id, eq.col);
+  ghostMesh.visible=false;
+  scene.add(ghostMesh);
+}
+
+function recalcTgt(){
+  PARAMS.forEach(p=>{tgt[p.key]=p.base;});
+  items.forEach(it=>{if(!it)return;Object.entries(it.eq.fx||{}).forEach(([k,v])=>{if(tgt[k]!==undefined)tgt[k]+=v;});});
+  PARAMS.forEach(p=>{tgt[p.key]=Math.max(0,Math.min(100,tgt[p.key]));});
+}
+
+function animCost(val){
+  const el=document.getElementById('cv');
+  let cur=parseInt(el.dataset.cur||0);
+  const step=Math.max(1,Math.ceil((val-cur)/28));
+  el.classList.add('bump');
+  const t=setInterval(()=>{cur=Math.min(cur+step,val);el.textContent=cur.toLocaleString()+'원';el.dataset.cur=cur;if(cur>=val){clearInterval(t);setTimeout(()=>el.classList.remove('bump'),300);}},16);
+}
+
+function bounceIn(grp){
+  let t=0;
+  (function tick(){t+=.08;const s=t<1?1-Math.pow(1-t,3):1;grp.scale.setScalar(s);if(t<1)requestAnimationFrame(tick);})();
+}
+
+/* ═══ SELECTION & MOVE ════════════════════════ */
+function openInfo(idx){
+  if(idx===undefined||!items[idx])return;
+  exitMoveMode();
+  selIdx=idx;
+  const it=items[idx];
+  document.getElementById('si').textContent=it.eq.icon;
+  document.getElementById('sn').textContent=it.eq.name;
+  document.getElementById('sd').textContent=it.eq.desc;
+  const panel=document.getElementById('sel-panel');
+  panel.style.display='flex';
+  panel.classList.add('visible');
+  document.getElementById('move-btn').classList.remove('active');
+  document.getElementById('move-btn').textContent='✋ 위치 이동';
+}
+function closeInfo(){
+  exitMoveMode();
+  selIdx=null;
+  const panel=document.getElementById('sel-panel');
+  panel.style.display='none';
+  panel.classList.remove('visible');
+}
+function toggleMove(){
+  if(selIdx===null)return;
+  moveMode=!moveMode;
+  const btn=document.getElementById('move-btn');
+  if(moveMode){
+    btn.classList.add('active'); btn.textContent='📍 여기에 놓기 (클릭)';
+    cw.className='moving';
+    tip('이동할 위치를 클릭하세요');
+  } else {
+    exitMoveMode();
+  }
+}
+function exitMoveMode(){
+  moveMode=false;
+  cw.className=tool?'placing':'';
+  const btn=document.getElementById('move-btn');
+  if(btn){btn.classList.remove('active');btn.textContent='✋ 위치 이동';}
+  tip('');
+}
+function removeSelected(){
+  if(selIdx===null)return;
+  const it=items[selIdx]; if(!it)return;
+  scene.remove(it.grp);
+  totalCost-=it.eq.price;
+  const el=document.getElementById('cv'); el.textContent=totalCost.toLocaleString()+'원'; el.dataset.cur=totalCost;
+  const cnt=document.getElementById('en-'+it.id);
+  cnt.textContent=Math.max(0,parseInt(cnt.textContent)-1);
+  items[selIdx]=null; recalcTgt(); closeInfo();
+  showToast('🗑 장비가 제거되었어요');
+}
+function clearAll(){
+  if(!items.filter(Boolean).length)return;
+  if(!confirm('모든 장비를 초기화할까요?'))return;
+  items.forEach(it=>{if(it)scene.remove(it.grp);}); items=[];
+  totalCost=0;
+  const el=document.getElementById('cv'); el.textContent='0원'; el.dataset.cur=0;
+  EQ.forEach(e=>{document.getElementById('en-'+e.id).textContent='0';});
+  recalcTgt(); closeInfo();
+}
+
+/* ═══ BOTTOM METERS ═══════════════════════════ */
+
+// Hint data: what to install for each param × status
+const PARAM_HINTS={
+  temp:{
+    low:{
+      title:'🌡️ 온도가 너무 낮아요!',
+      why:'작물이 잘 자라려면 온도가 적정 범위 안에 있어야 해요. 온도가 낮으면 성장이 멈추거나 작물이 얼 수 있어요.',
+      solutions:[
+        {id:'heater', reason:'🔥 난방기를 설치하면 온실 내부 온도를 높일 수 있어요. 양쪽 끝 장비 공간에 놓으면 열이 골고루 퍼져요.'},
+        {id:'curtain', reason:'🪟 자동개폐기로 커튼을 닫으면 바깥 찬 공기를 막고 온도를 유지할 수 있어요.'},
+        {id:'temp', reason:'🌡️ 온도 센서를 달면 온도 변화를 바로 감지해서 난방기를 제때 켤 수 있어요.'},
+      ]
+    },
+    high:{
+      title:'🌡️ 온도가 너무 높아요!',
+      why:'온도가 너무 높으면 작물이 시들거나 열매가 타버릴 수 있어요.',
+      solutions:[
+        {id:'fan', reason:'💨 환기팬을 달면 뜨거운 공기를 내보내고 온도를 낮출 수 있어요. 벽면 위쪽에 설치하면 효과적이에요.'},
+        {id:'curtain', reason:'🪟 자동개폐기로 커튼을 열면 채광을 줄이고 온도를 낮출 수 있어요.'},
+      ]
+    }
+  },
+  humidity:{
+    low:{
+      title:'💧 습도가 너무 낮아요!',
+      why:'건조하면 작물이 수분을 잃어 시들고, 뿌리가 제대로 영양을 흡수하지 못해요.',
+      solutions:[
+        {id:'water', reason:'🚿 관수 장비를 설치하면 물을 자동으로 공급해서 습도를 높일 수 있어요.'},
+        {id:'humid', reason:'💧 습도 센서를 달면 건조해지는 순간을 바로 알아차릴 수 있어요.'},
+      ]
+    },
+    high:{
+      title:'💧 습도가 너무 높아요!',
+      why:'습도가 너무 높으면 곰팡이나 병균이 생겨 작물이 병들 수 있어요.',
+      solutions:[
+        {id:'fan', reason:'💨 환기팬으로 축축한 공기를 바깥으로 내보내 습도를 낮출 수 있어요.'},
+        {id:'humid', reason:'💧 습도 센서가 있으면 습도가 높아지는 것을 미리 감지할 수 있어요.'},
+      ]
+    }
+  },
+  co2:{
+    low:{
+      title:'🌫️ CO₂ 농도가 너무 낮아요!',
+      why:'이산화탄소는 광합성의 원료예요. CO₂가 부족하면 작물이 제대로 자라지 못해요.',
+      solutions:[
+        {id:'co2', reason:'🌫️ CO₂ 센서를 달면 농도 변화를 모니터링해서 적절히 조절할 수 있어요.'},
+        {id:'curtain', reason:'🪟 자동개폐기로 환기량을 줄이면 CO₂ 농도를 유지하는 데 도움이 돼요.'},
+      ]
+    },
+    high:{
+      title:'🌫️ CO₂ 농도가 너무 높아요!',
+      why:'CO₂가 너무 많으면 작물에 해롭고, 작업하는 사람에게도 위험해요.',
+      solutions:[
+        {id:'fan', reason:'💨 환기팬을 달면 CO₂를 포함한 공기를 외부로 배출해 농도를 낮춰요. 벽 위쪽에 설치하세요!'},
+        {id:'co2', reason:'🌫️ CO₂ 센서가 있으면 농도가 위험 수준에 도달하기 전에 알 수 있어요.'},
+      ]
+    }
+  },
+  light:{
+    low:{
+      title:'☀️ 채광이 너무 부족해요!',
+      why:'빛이 부족하면 광합성이 줄어 작물이 연약하게 자라고 열매가 잘 열리지 않아요.',
+      solutions:[
+        {id:'curtain', reason:'🪟 자동개폐기로 커튼을 열어 햇빛이 더 많이 들어오게 할 수 있어요.'},
+        {id:'drone', reason:'🚁 드론으로 온실 내부를 모니터링하면 채광이 부족한 구역을 파악할 수 있어요.'},
+      ]
+    },
+    high:{
+      title:'☀️ 채광이 너무 강해요!',
+      why:'빛이 너무 강하면 잎이 타거나 수분이 빠르게 증발해 작물이 시들 수 있어요.',
+      solutions:[
+        {id:'curtain', reason:'🪟 자동개폐기로 커튼을 닫으면 강한 햇빛을 막아 채광량을 줄일 수 있어요.'},
+        {id:'water', reason:'🚿 관수 장비로 수분을 보충하면 강한 햇빛으로 인한 건조를 막을 수 있어요.'},
+      ]
+    }
+  },
+  water:{
+    low:{
+      title:'🌊 수분이 너무 부족해요!',
+      why:'수분이 부족하면 뿌리가 마르고 작물이 금방 시들어요.',
+      solutions:[
+        {id:'water', reason:'🚿 관수 장비를 추가하면 자동으로 물을 공급해서 수분을 유지할 수 있어요.'},
+        {id:'drone', reason:'🚁 농사형 드론이 있으면 물주기가 어려운 구역에도 물을 줄 수 있어요.'},
+        {id:'humid', reason:'💧 습도 센서를 함께 달면 수분 상태를 더 정확하게 파악할 수 있어요.'},
+      ]
+    },
+    high:{
+      title:'🌊 수분이 너무 많아요!',
+      why:'과습 상태가 되면 뿌리가 썩고 병균이 번식하기 쉬워요.',
+      solutions:[
+        {id:'fan', reason:'💨 환기팬으로 공기를 순환시키면 과잉 수분을 빠르게 증발시킬 수 있어요.'},
+        {id:'humid', reason:'💧 습도 센서를 달면 수분이 너무 많아지기 전에 감지할 수 있어요.'},
+      ]
+    }
+  }
+};
+
+function showParamHint(key){
+  const p=PARAMS.find(p=>p.key===key); if(!p)return;
+  const v=live[key];
+  const[lo,hi]=p.ideal;
+  const dir=v<lo?'low':'high';
+  const d=v<lo?lo-v:v-hi;
+  if(d<8&&d>0){
+    // 양호 — show encouragement
+    const html=`<div style="text-align:center;padding:8px 0">
+      <div style="font-size:28px;margin-bottom:8px">${p.ico}</div>
+      <div style="font-size:15px;font-weight:700;color:#69f0ae;margin-bottom:8px">${p.lbl} 상태가 양호해요!</div>
+      <div style="font-size:12px;color:#81c784;line-height:1.8">현재 ${p.fmt(v)}${p.unit}으로 적정 범위에 거의 도달했어요.<br>지금 설치된 장비를 잘 유지해 주세요 🌱</div>
+    </div>`;
+    document.getElementById('hint-modal-content').innerHTML=html;
+    document.getElementById('hint-modal').classList.add('open');
+    return;
+  }
+  if(d===0){
+    const html=`<div style="text-align:center;padding:8px 0">
+      <div style="font-size:28px;margin-bottom:8px">${p.ico}</div>
+      <div style="font-size:15px;font-weight:700;color:#69f0ae;margin-bottom:8px">${p.lbl} 상태가 최적이에요! 🌟</div>
+      <div style="font-size:12px;color:#81c784;line-height:1.8">현재 ${p.fmt(v)}${p.unit}으로 작물이 좋아하는 범위 안에 있어요.<br>지금 이 상태를 유지해 주세요!</div>
+    </div>`;
+    document.getElementById('hint-modal-content').innerHTML=html;
+    document.getElementById('hint-modal').classList.add('open');
+    return;
+  }
+  const hint=PARAM_HINTS[key]?.[dir];
+  if(!hint)return;
+  const installed=new Set(items.filter(Boolean).map(it=>it.id));
+  const sols=hint.solutions.map(s=>{
+    const already=installed.has(s.id);
+    return `<div style="background:${already?'rgba(105,240,174,.08)':'rgba(255,255,255,.05)'};border:1px solid ${already?'#2e5e32':'#1e4d22'};border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+      <div style="font-size:12px;color:#c8e6c9;line-height:1.6">${s.reason}</div>
+      ${already?`<div style="font-size:10px;color:#69f0ae;margin-top:4px;">✅ 이미 설치되어 있어요!</div>`:`<div style="font-size:10px;color:#ffcc80;margin-top:4px;">➡ 오른쪽 장비 목록에서 추가하세요</div>`}
+    </div>`;
+  }).join('');
+  const rangeStr=`적정 범위: ${p.ideal[0]}~${p.ideal[1]}${p.unit}`;
+  const curStr=`현재: ${p.fmt(v)}${p.unit}`;
+  const html=`
+    <div style="margin-bottom:14px;">
+      <div style="font-size:18px;font-weight:700;color:#ef5350;margin-bottom:6px;">${hint.title}</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <span style="background:rgba(239,83,80,.15);color:#ef5350;padding:3px 10px;border-radius:12px;font-size:11px;">${curStr}</span>
+        <span style="background:rgba(105,240,174,.1);color:#69f0ae;padding:3px 10px;border-radius:12px;font-size:11px;">${rangeStr}</span>
+      </div>
+      <div style="font-size:12px;color:#81c784;line-height:1.7;margin-bottom:14px;background:rgba(255,255,255,.04);padding:10px;border-radius:8px;">${hint.why}</div>
+      <div style="font-size:11px;font-weight:700;color:#ffcc80;margin-bottom:8px;">💡 이런 장비를 추가해 보세요!</div>
+      ${sols}
+    </div>`;
+  document.getElementById('hint-modal-content').innerHTML=html;
+  document.getElementById('hint-modal').classList.add('open');
+}
+
+const mts=document.getElementById('mts-inner');
+PARAMS.forEach(p=>{
+  const div=document.createElement('div');
+  div.className='mt';
+  div.style.cssText='cursor:pointer;transition:transform .15s;';
+  div.title='클릭하면 개선 힌트를 볼 수 있어요!';
+  div.innerHTML=`
+    <div class="mt-lbl"><span>${p.ico}</span>${p.lbl}<span id="mt-hint-icon-${p.key}" style="margin-left:3px;font-size:10px;opacity:0;transition:opacity .3s">💡</span></div>
+    <div class="mt-bar"><div class="mt-fill" id="mf-${p.key}"></div></div>
+    <div class="mt-bot">
+      <div style="display:flex;align-items:baseline;gap:2px"><span class="mt-num" id="mv-${p.key}">--</span><span class="mt-unit">${p.unit}</span></div>
+      <span class="mt-bdg" id="mb-${p.key}">--</span>
+    </div>`;
+  div.addEventListener('click',()=>showParamHint(p.key));
+  div.addEventListener('mouseenter',()=>div.style.transform='translateY(-2px)');
+  div.addEventListener('mouseleave',()=>div.style.transform='');
+  mts.appendChild(div);
+});
+
+function pSt(p,v){
+  const[lo,hi]=p.ideal,d=v<lo?lo-v:v>hi?v-hi:0;
+  if(d===0)return{lbl:'최적',cls:'g',sc:1};
+  if(d<8)return{lbl:'양호',cls:'o',sc:.75};
+  if(d<18)return{lbl:'주의',cls:'w',sc:.4};
+  return{lbl:'나쁨',cls:'b',sc:0};
+}
+function mCol(p,v){
+  const[lo,hi]=p.ideal,d=v<lo?lo-v:v>hi?v-hi:0;
+  if(d===0)return'#69f0ae';if(d<8)return'#aed581';if(d<18)return'#ffb74d';return'#ef5350';
+}
+
+function updateMeters(){
+  let tot=0;
+  PARAMS.forEach(p=>{
+    const v=live[p.key],pct=Math.min(100,Math.max(0,v)),st=pSt(p,v);
+    tot+=st.sc;
+    document.getElementById('mf-'+p.key).style.width=pct+'%';
+    document.getElementById('mf-'+p.key).style.background=mCol(p,v);
+    document.getElementById('mv-'+p.key).textContent=p.fmt(v);
+    const mb=document.getElementById('mb-'+p.key); mb.textContent=st.lbl; mb.className='mt-bdg '+st.cls;
+    // Show 💡 hint icon when warn or bad
+    const hi=document.getElementById('mt-hint-icon-'+p.key);
+    if(hi) hi.style.opacity=(st.cls==='w'||st.cls==='b')?'1':'0';
+  });
+  farmScore=tot/PARAMS.length;
+  let ov;
+  if(farmScore>=.95)ov=OV[5];else if(farmScore>=.75)ov=OV[4];else if(farmScore>=.55)ov=OV[3];
+  else if(farmScore>=.35)ov=OV[2];else if(farmScore>=.15)ov=OV[1];else ov=OV[0];
+  document.getElementById('oi').textContent=ov.ico;
+  const os=document.getElementById('os'); os.textContent=ov.lbl; os.style.color=ov.col;
+  document.getElementById('osub').textContent=items.filter(Boolean).length>0?`장비 ${items.filter(Boolean).length}개 설치`:'장비를 배치하세요';
+}
+
+/* ═══ FARMER SPEECH BUBBLE ════════════════════ */
+const farmerSpeechEl=document.getElementById('farmer-speech');
+const farmerBubbleEl=document.getElementById('farmer-bubble');
+let bubbleTimeout=null;
+
+function updateFarmerBubble(force=false){
+  const now=Date.now();
+  if(!force && now-lastBubbleUpdate<5000) return;
+  lastBubbleUpdate=now;
+
+  let lines;
+  if(!selectedCrop) lines=FARMER_LINES.nocrop;
+  else if(farmScore>=.95) lines=FARMER_LINES.best;
+  else if(farmScore>=.75) lines=FARMER_LINES.good;
+  else if(farmScore>=.55) lines=FARMER_LINES.ok;
+  else if(farmScore>=.3) lines=FARMER_LINES.warn;
+  else lines=FARMER_LINES.bad;
+
+  farmerBubbleEl.textContent=lines[Math.floor(Math.random()*lines.length)];
+}
+
+function updateFarmerSpeechPos(){
+  if(!farmerMesh)return;
+  const pos=new THREE.Vector3();
+  farmerMesh.getWorldPosition(pos);
+  pos.y+=1.8;
+  pos.project(camera);
+  const rect=cw.getBoundingClientRect();
+  const x=(pos.x*.5+.5)*rect.width;
+  const y=(-.5*pos.y+.5)*rect.height;
+  if(pos.z<1){
+    farmerSpeechEl.style.left=(x-10)+'px';
+    farmerSpeechEl.style.top=(y-70)+'px';
+    farmerSpeechEl.style.display='block';
+  } else {
+    farmerSpeechEl.style.display='none';
+  }
+}
+
+/* ═══ REPORT ══════════════════════════════════ */
+let studentName = '';
+
+function openNameModal(){
+  const input=document.getElementById('student-name-input');
+  input.value=studentName||'';
+  document.getElementById('name-modal').classList.add('open');
+  setTimeout(()=>input.focus(),100);
+}
+
+function confirmName(){
+  const val=document.getElementById('student-name-input').value.trim();
+  studentName=val||'이름 없음';
+  document.getElementById('name-modal').classList.remove('open');
+  generateReport();
+}
+
+function generateReport(){
+  // ── Scoring ──────────────────────────────────
+  // 1. Environment score (40pt): avg of 5 param scores
+  let envTotal=0;
+  PARAMS.forEach(p=>{
+    const v=live[p.key];
+    const[lo,hi]=p.ideal;
+    const d=v<lo?lo-v:v>hi?v-hi:0;
+    if(d===0) envTotal+=1;
+    else if(d<8) envTotal+=0.75;
+    else if(d<18) envTotal+=0.4;
+    // else 0
+  });
+  const envScore=Math.round((envTotal/PARAMS.length)*40);
+
+  // 2. Crop growth score (25pt)
+  const growthScore=selectedCrop?Math.round(Math.max(0,Math.min(1,cropGrowth))*25):0;
+
+  // 3. Equipment diversity score (20pt): unique types installed ÷ total EQ types
+  const uniqueTypes=new Set(items.filter(Boolean).map(it=>it.id)).size;
+  const divScore=Math.round((uniqueTypes/EQ.length)*20);
+
+  // 4. Cost efficiency score (15pt): inverse of cost, max budget 5M
+  const MAX_BUDGET=5000000;
+  const costRatio=Math.min(totalCost/MAX_BUDGET,1);
+  const costScore=Math.round((1-costRatio*0.8)*15); // spend 0 => 15pt, spend max => 3pt
+
+  const total=Math.min(100, envScore+growthScore+divScore+costScore);
+
+  // ── Grade ────────────────────────────────────
+  const grade=total>=90?{g:'S',c:'#ffd700',msg:'완벽한 스마트팜이에요! 🌟'}
+    :total>=80?{g:'A',c:'#69f0ae',msg:'훌륭한 스마트팜이에요! 😊'}
+    :total>=65?{g:'B',c:'#aed581',msg:'좋은 스마트팜이에요! 🙂'}
+    :total>=50?{g:'C',c:'#ffb74d',msg:'조금만 더 개선해봐요! 🤔'}
+    :{g:'D',c:'#ef5350',msg:'장비를 더 추가해봐요! 💪'};
+
+  // ── Screenshot ───────────────────────────────
+  renderer.render(scene,camera);
+  const imgData=CV.toDataURL('image/jpeg',0.85);
+
+  // ── Equipment summary ─────────────────────────
+  const eqCount={};
+  items.filter(Boolean).forEach(it=>{ eqCount[it.id]=(eqCount[it.id]||0)+1; });
+  const installedEQ=EQ.filter(e=>eqCount[e.id]);
+
+  // ── Effects summary ──────────────────────────
+  const totalFx={};
+  items.filter(Boolean).forEach(it=>{
+    Object.entries(it.eq.fx||{}).forEach(([k,v])=>{ totalFx[k]=(totalFx[k]||0)+v; });
+  });
+
+  // ── Param status rows ─────────────────────────
+  const paramRows=PARAMS.map(p=>{
+    const v=live[p.key];
+    const[lo,hi]=p.ideal;
+    const d=v<lo?lo-v:v>hi?v-hi:0;
+    const st=d===0?{lbl:'최적',c:'#69f0ae'}:d<8?{lbl:'양호',c:'#aed581'}:d<18?{lbl:'주의',c:'#ffb74d'}:{lbl:'나쁨',c:'#ef5350'};
+    return `<tr>
+      <td style="padding:6px 10px;font-size:12px;color:#c8e6c9;">${p.ico} ${p.lbl}</td>
+      <td style="padding:6px 10px;font-size:12px;color:#81c784;text-align:center;">${p.fmt(v)}${p.unit}</td>
+      <td style="padding:6px 10px;font-size:11px;color:#555;text-align:center;">${lo}~${hi}${p.unit}</td>
+      <td style="padding:6px 10px;text-align:center;"><span style="background:${st.c}22;color:${st.c};padding:2px 10px;border-radius:10px;font-size:11px;font-weight:700;">${st.lbl}</span></td>
+    </tr>`;
+  }).join('');
+
+  // ── Equipment rows ────────────────────────────
+  const eqRows=installedEQ.length>0?installedEQ.map(e=>{
+    const cnt=eqCount[e.id];
+    const fxStr=Object.entries(e.fx||{}).map(([k,v])=>{
+      const pn=PARAMS.find(p=>p.key===k);
+      return `${pn?.ico||k} ${v>0?'+':''}${v}${pn?.unit||''}`;
+    }).join(' / ');
+    return `<tr>
+      <td style="padding:6px 10px;font-size:12px;color:#c8e6c9;">${e.icon} ${e.name}</td>
+      <td style="padding:6px 10px;font-size:12px;color:#69f0ae;text-align:center;font-weight:700;">${cnt}개</td>
+      <td style="padding:6px 10px;font-size:11px;color:#81c784;">${fxStr}</td>
+      <td style="padding:6px 10px;font-size:11px;color:#ffcc80;text-align:right;">${(e.price*cnt).toLocaleString()}원</td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="4" style="padding:14px;text-align:center;color:#2e5e32;font-size:12px;">설치된 장비 없음</td></tr>`;
+
+  // ── Score bars ────────────────────────────────
+  const barHtml=(label,score,max,col)=>`
+    <div style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+        <span style="font-size:11px;color:#81c784;">${label}</span>
+        <span style="font-size:11px;font-weight:700;color:${col};">${score}/${max}점</span>
+      </div>
+      <div style="height:6px;background:#0d2010;border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${(score/max*100).toFixed(0)}%;background:${col};border-radius:3px;transition:width 1s;"></div>
+      </div>
+    </div>`;
+
+  const cropInfo=selectedCrop?CROPS.find(c=>c.id===selectedCrop):null;
+  const growthPct=Math.round(Math.max(0,Math.min(1,cropGrowth))*100);
+
+  const html=`
+  <div style="background:#0a1f0c;font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;" id="report-inner">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0d2a10,#1b5e20);padding:22px 24px 16px;position:relative;">
+      <div style="font-size:11px;color:#4caf50;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">SMART FARM REPORT</div>
+      <div style="font-size:20px;font-weight:700;color:#c8e6c9;">${studentName}의 스마트팜 완성 리포트</div>
+      <div style="font-size:11px;color:#4caf50;margin-top:4px;">${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})}</div>
+      <div style="position:absolute;top:16px;right:24px;width:56px;height:56px;background:${grade.c}22;border:3px solid ${grade.c};border-radius:50%;display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:26px;font-weight:900;color:${grade.c};">${grade.g}</span>
+      </div>
+    </div>
+
+    <div style="padding:16px 24px;display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+
+      <!-- Farm screenshot -->
+      <div>
+        <div style="font-size:10px;color:#4caf50;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">📸 스마트팜 모습</div>
+        <img src="${imgData}" style="width:100%;border-radius:10px;border:1px solid #1e4d22;display:block;"/>
+        ${cropInfo?`<div style="margin-top:6px;background:#0d2010;border-radius:8px;padding:7px 10px;font-size:11px;color:#c8e6c9;">
+          ${cropInfo.icon} 재배 작물: <b>${cropInfo.name}</b> &nbsp;·&nbsp; 성장률: <b style="color:${growthPct>=70?'#69f0ae':growthPct>=40?'#aed581':'#ef5350'}">${growthPct}%</b>
+        </div>`:'<div style="margin-top:6px;background:#0d2010;border-radius:8px;padding:7px 10px;font-size:11px;color:#555;">작물 미선택</div>'}
+      </div>
+
+      <!-- Total score -->
+      <div>
+        <div style="font-size:10px;color:#4caf50;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">🏆 종합 점수</div>
+        <div style="background:#0d2010;border-radius:12px;padding:14px;text-align:center;margin-bottom:10px;">
+          <div style="font-size:48px;font-weight:900;color:${grade.c};line-height:1;">${total}</div>
+          <div style="font-size:13px;color:#555;margin:2px 0 6px;">/ 100점</div>
+          <div style="font-size:12px;color:#81c784;">${grade.msg}</div>
+        </div>
+        ${barHtml('🌿 환경 상태',envScore,40,'#69f0ae')}
+        ${barHtml('🌱 작물 성장',growthScore,25,'#aed581')}
+        ${barHtml('📦 장비 다양성',divScore,20,'#ffcc80')}
+        ${barHtml('💰 비용 효율',costScore,15,'#42a5f5')}
+        <div style="font-size:10px;color:#2e5e32;margin-top:4px;text-align:right;">총 설치 비용: ${totalCost.toLocaleString()}원</div>
+      </div>
+
+    </div>
+
+    <!-- Environment table -->
+    <div style="padding:0 24px 14px;">
+      <div style="font-size:10px;color:#4caf50;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">🌡️ 환경 상태 분석</div>
+      <table style="width:100%;border-collapse:collapse;background:#0d2010;border-radius:10px;overflow:hidden;">
+        <thead>
+          <tr style="background:#122e16;">
+            <th style="padding:7px 10px;font-size:10px;color:#4caf50;text-align:left;">항목</th>
+            <th style="padding:7px 10px;font-size:10px;color:#4caf50;text-align:center;">현재 값</th>
+            <th style="padding:7px 10px;font-size:10px;color:#4caf50;text-align:center;">적정 범위</th>
+            <th style="padding:7px 10px;font-size:10px;color:#4caf50;text-align:center;">상태</th>
+          </tr>
+        </thead>
+        <tbody>${paramRows}</tbody>
+      </table>
+    </div>
+
+    <!-- Equipment table -->
+    <div style="padding:0 24px 18px;">
+      <div style="font-size:10px;color:#4caf50;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">📦 설치 장비 현황 (총 ${items.filter(Boolean).length}개)</div>
+      <table style="width:100%;border-collapse:collapse;background:#0d2010;border-radius:10px;overflow:hidden;">
+        <thead>
+          <tr style="background:#122e16;">
+            <th style="padding:7px 10px;font-size:10px;color:#4caf50;text-align:left;">장비</th>
+            <th style="padding:7px 10px;font-size:10px;color:#4caf50;text-align:center;">수량</th>
+            <th style="padding:7px 10px;font-size:10px;color:#4caf50;text-align:left;">효과</th>
+            <th style="padding:7px 10px;font-size:10px;color:#4caf50;text-align:right;">비용</th>
+          </tr>
+        </thead>
+        <tbody>${eqRows}</tbody>
+        ${installedEQ.length>0?`<tfoot><tr style="background:#122e16;"><td colspan="3" style="padding:7px 10px;font-size:11px;color:#81c784;font-weight:700;">합계</td><td style="padding:7px 10px;font-size:11px;color:#ffcc80;text-align:right;font-weight:700;">${totalCost.toLocaleString()}원</td></tr></tfoot>`:''}
+      </table>
+    </div>
+  </div>`;
+
+  document.getElementById('report-content').innerHTML=html;
+  document.getElementById('report-modal').classList.add('open');
+
+  // Save as PNG using html2canvas via CDN
+  document.getElementById('report-save-btn').onclick=()=>saveReport();
+}
+
+function saveReport(){
+  const el=document.getElementById('report-inner');
+  if(!el){showToast('⚠️ 리포트를 먼저 생성해주세요');return;}
+
+  // Use html2canvas if available, else fallback to basic canvas
+  if(typeof html2canvas==='undefined'){
+    // Load on demand
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload=()=>doSaveReport(el);
+    document.head.appendChild(s);
+  } else {
+    doSaveReport(el);
+  }
+}
+
+function doSaveReport(el){
+  showToast('🖼 리포트 저장 중...');
+  html2canvas(el,{
+    backgroundColor:'#0a1f0c',
+    scale:2,
+    useCORS:true,
+    allowTaint:true,
+    logging:false,
+  }).then(canvas=>{
+    const url=canvas.toDataURL('image/png');
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='스마트팜_리포트_'+new Date().toISOString().slice(0,10)+'.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    showToast('✅ 리포트가 저장되었어요!');
+  }).catch(()=>showToast('⚠️ 저장 실패. 스크린샷을 이용해 주세요.'));
+}
+
+function shareReport(){
+  const data=items.filter(Boolean).map(it=>({
+    id:it.id,
+    p:[+it.grp.position.x.toFixed(2),+it.grp.position.y.toFixed(2),+it.grp.position.z.toFixed(2)],
+    ry:+it.grp.rotation.y.toFixed(3)
+  }));
+  const payload={items:data, crop:selectedCrop, report:true, name:studentName};
+  const cropInfo=selectedCrop?CROPS.find(c=>c.id===selectedCrop):null;
+  const total=calcTotalScore();
+  document.getElementById('report-share-summary').textContent=
+    `총점 ${total}점 · 장비 ${data.length}개 · 작물: ${cropInfo?.name||'없음'}`;
+  document.getElementById('report-share-dl-btn').onclick=()=>embedAndDownload(payload,'나의스마트팜_리포트');
+  document.getElementById('report-share-modal').classList.add('open');
+}
+
+// Extract score calculation so both report and share can use it
+function calcTotalScore(){
+  let envTotal=0;
+  PARAMS.forEach(p=>{
+    const v=live[p.key],[lo,hi]=p.ideal,d=v<lo?lo-v:v>hi?v-hi:0;
+    if(d===0)envTotal+=1;else if(d<8)envTotal+=0.75;else if(d<18)envTotal+=0.4;
+  });
+  const envScore=Math.round((envTotal/PARAMS.length)*40);
+  const growthScore=selectedCrop?Math.round(Math.max(0,Math.min(1,cropGrowth))*25):0;
+  const uniqueTypes=new Set(items.filter(Boolean).map(it=>it.id)).size;
+  const divScore=Math.round((uniqueTypes/EQ.length)*20);
+  const costScore=Math.round((1-Math.min(totalCost/5000000,1)*0.8)*15);
+  return Math.min(100,envScore+growthScore+divScore+costScore);
+}
+
+function takeShot(){
+  renderer.render(scene,camera);
+  try{
+    const dataURL=CV.toDataURL('image/png');
+    document.getElementById('save-img').src=dataURL;
+    document.getElementById('dl-btn').onclick=()=>{
+      const a=document.createElement('a'); a.href=dataURL;
+      a.download='스마트팜_'+new Date().toISOString().slice(0,10)+'.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      showToast('✅ 이미지가 저장되었어요!');
+    };
+    document.getElementById('save-modal').classList.add('open');
+  }catch(ex){showToast('⚠️ 저장 오류: 브라우저 설정을 확인해주세요');}
+}
+
+function shareScene(){
+  const data=items.filter(Boolean).map(it=>({
+    id:it.id,
+    p:[+it.grp.position.x.toFixed(2),+it.grp.position.y.toFixed(2),+it.grp.position.z.toFixed(2)],
+    ry:+it.grp.rotation.y.toFixed(3)
+  }));
+  const payload={items:data, crop:selectedCrop};
+  const cropInfo=selectedCrop?CROPS.find(c=>c.id===selectedCrop):null;
+  document.getElementById('share-item-count').textContent=
+    `장비 ${data.length}개 · 작물: ${cropInfo?.name||'없음'}`;
+  document.getElementById('share-dl-btn').onclick=()=>embedAndDownload(payload,'나의스마트팜_공유');
+  document.getElementById('share-modal').classList.add('open');
+}
+
+// Embed payload into a self-contained copy of this HTML, then download it
+function embedAndDownload(payload, filename){
+  const preloadScript=`<script>window.__PRELOAD__=${JSON.stringify(JSON.stringify(payload))};<\/script>`;
+  const html=document.documentElement.outerHTML.replace('</body>', preloadScript+'</body>');
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=filename+'_'+new Date().toISOString().slice(0,10)+'.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ 공유 파일이 다운로드됐어요!');
+}
+
+function loadFromHash(){
+  try{
+    let payload=null;
+    if(window.__PRELOAD__){
+      // Loaded from a shared HTML file
+      payload=JSON.parse(window.__PRELOAD__);
+    } else {
+      // Fallback: try URL hash
+      const m=location.hash.match(/s=(.+)/); if(!m)return;
+      payload=JSON.parse(decodeURIComponent(atob(m[1])));
+    }
+    const data=payload.items||[];
+    if(payload.crop)selectCrop(payload.crop);
+    data.forEach(d=>{
+      const eq=EQ.find(e=>e.id===d.id); if(!eq)return;
+      const grp=buildMesh(d.id,eq.col); grp.position.set(...d.p); grp.rotation.y=d.ry;
+      scene.add(grp);
+      const idx=items.length; items.push({grp,id:d.id,eq,baseY:d.p[1]});
+      grp.traverse(c=>{if(c.isMesh)c.userData._i=idx;});
+      totalCost+=eq.price;
+      document.getElementById('cv').textContent=totalCost.toLocaleString()+'원';
+      document.getElementById('cv').dataset.cur=totalCost;
+      document.getElementById('en-'+d.id).textContent=parseInt(document.getElementById('en-'+d.id).textContent||0)+1;
+    });
+    recalcTgt();
+    if(data.length){
+      showToast(`🔗 공유된 스마트팜을 불러왔어요! (장비 ${data.length}개)`);
+      if(payload.report){ studentName=payload.name||''; setTimeout(()=>generateReport(), 1200); }
+    }
+  }catch(ex){}
+}
+
+function toggleRec(){if(!mRec||mRec.state==='inactive')startRec();else stopRec();}
+function startRec(){
+  recChunks=[];const stream=CV.captureStream(30);
+  const opts=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?{mimeType:'video/webm;codecs=vp9'}:{mimeType:'video/webm'};
+  try{mRec=new MediaRecorder(stream,opts);}catch{mRec=new MediaRecorder(stream);}
+  mRec.ondataavailable=e=>{if(e.data.size>0)recChunks.push(e.data);};
+  mRec.onstop=()=>{const blob=new Blob(recChunks,{type:'video/webm'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='스마트팜_녹화_'+Date.now()+'.webm';a.click();URL.revokeObjectURL(u);};
+  mRec.start(100);
+  document.getElementById('rb').textContent='⏹ 중지'; document.getElementById('rb').classList.add('on');
+  document.getElementById('rec-badge').style.display='flex';
+}
+function stopRec(){mRec?.stop();document.getElementById('rb').textContent='⏺ 녹화';document.getElementById('rb').classList.remove('on');document.getElementById('rec-badge').style.display='none';}
+
+let toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+/* ═══ RESIZE ══════════════════════════════════ */
+function onResize(){const w=cw.clientWidth,h=cw.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
+window.addEventListener('resize',onResize); onResize();
+
+setTimeout(loadFromHash,300);
+
+// Escape cancels tool
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(tool){setTool(tool);} else closeInfo(); }});
+
+/* ═══ LOOP ════════════════════════════════════ */
+let tk=0;
+(function loop(){
+  requestAnimationFrame(loop); tk+=.03;
+
+  // Live values
+  PARAMS.forEach(p=>{live[p.key]+=(tgt[p.key]-live[p.key])*.012+(Math.random()-.5)*.1;live[p.key]=Math.max(0,Math.min(100,live[p.key]));});
+  updateMeters();
+
+  // Crop growth (smooth toward target)
+  const growthTarget = selectedCrop ? Math.max(0.08, farmScore) : 0;
+  cropGrowth+=(growthTarget-cropGrowth)*.005;
+
+  // Rebuild crops periodically when growth changes
+  if(selectedCrop && cropMeshes.length>0){
+    cropMeshes.forEach((m,i)=>{
+      const h=0.12+cropGrowth*0.55;
+      m.scale.y=Math.max(.1,h/0.67); // scale height
+      // Color shift green as growth improves
+      const g=cropGrowth;
+      m.traverse(c=>{
+        if(c.isMesh&&c.material&&c.material.color){
+          const crop=CROPS.find(cr=>cr.id===selectedCrop);
+          const base=new THREE.Color(crop?crop.color:0x43a047);
+          const good=new THREE.Color(0x2e7d32);
+          c.material.color.lerpColors(base,good,Math.max(0,g-.3)/.7);
+        }
+      });
+    });
+  }
+
+  // Pulse rec markers
+  recMarkers.forEach((m,i)=>{
+    const s=0.85+Math.sin(tk*3+i)*.15;
+    m.scale.setScalar(s);
+    if(m.material) m.material.opacity=0.5+Math.sin(tk*3+i)*.25;
+  });
+  items.forEach(it=>{
+    if(!it)return;
+    if(it.grp.userData.fg)it.grp.userData.fg.rotation.z+=.14;
+    if(it.grp.userData.isDrone){
+      it.grp.position.y=it.baseY+Math.sin(tk*2+it.grp.position.x)*.09;
+      it.grp.traverse(c=>{if(c.isMesh&&c.geometry.type==='TorusGeometry')c.rotation.y+=.2;});
+    }
+  });
+
+  // Farmer walk bob
+  if(farmerMesh){
+    farmerMesh.position.y=Math.abs(Math.sin(tk*1.5))*.04;
+    farmerMesh.rotation.y=-0.6+Math.sin(tk*.3)*.08;
+  }
+
+  // Farmer bubble position
+  updateFarmerSpeechPos();
+
+  // Update bubble every 6s
+  if(tk%6<.03) updateFarmerBubble();
+
+  renderer.render(scene,camera);
+})();
+
+updateFarmerBubble(true);
+</script>
+</body>
+</html>
